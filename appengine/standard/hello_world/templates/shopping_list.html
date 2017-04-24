@@ -15,7 +15,7 @@
         <h2>Shopping List</h2>
         <ul>
             {% for item in items %}
-                <li>{{ item }}</li>
+                <li>{{ item | escape}}</li>
             {% endfor %}
         </ul>
     {% endif %}
