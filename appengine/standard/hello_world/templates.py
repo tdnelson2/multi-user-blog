@@ -55,7 +55,6 @@ class SignupHandler(Handler):
 	    if params is None:
 	    	self.redirect('/welcome?username=' + username)
 	    else:
-	    	# redirect
 	    	self.render('signup.html',  **params)
 
 class SignupSuccessHandler(Handler):
