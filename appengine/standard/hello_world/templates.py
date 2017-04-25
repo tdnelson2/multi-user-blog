@@ -51,17 +51,12 @@ class SignupHandler(Handler):
 	    password = self.request.get('password', 0)
 	    verify = self.request.get('verify', 0)
 	    email = self.request.get('email', 0)
-	    exceptions = signup.evaluate_signup(username, password, verify, email)
-	    if exceptions is None:
+	    params = signup.evaluate_signup(username, password, verify, email)
+	    if params is None:
 	    	self.redirect('/welcome?username=' + username)
 	    else:
 	    	# redirect
-	    	self.render('signup.html',  username = username, 
-	    								email = email, 
-	    								username_msg = exceptions["username_msg"], 
-	    								password_msg = exceptions["password_msg"], 
-	    								email_msg = exceptions["email_msg"], 
-	    								verify_msg = exceptions["verify_msg"])
+	    	self.render('signup.html',  **params)
 
 class SignupSuccessHandler(Handler):
 	def get(self):
