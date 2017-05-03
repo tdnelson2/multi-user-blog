@@ -43,16 +43,16 @@
             margin: 20px auto;
         }
 
-        .art + .art {
+        .blog-entry + .blog-entry {
             margin-top: 20px;
         }
 
-        .art-title {
+        .blog-title {
             font-weight: bold;
             font-size: 20px;
         }
 
-        .art-body {
+        .blog-body {
             margin: 0;
             font-size: 17px;
         }
@@ -68,8 +68,8 @@
             </label>
 
             <label>
-                <div>art</div>
-                <textarea name="art">{{art}}</textarea>
+                <div>body</div>
+                <textarea name="body">{{body}}</textarea>
             </label>
 
             <div class="error">{{error}}</div>
@@ -79,10 +79,10 @@
 
         <hr>
 
-        {% for art in arts %}
-        <div class="art">
-            <div class="art-title">{{art.title}}</div>
-            <pre class="art-body">{{art.art}}</pre>
+        {% for entry in entries %}
+        <div class="blog-entry">
+            <div class="blog-title">{{entry.title}}</div>
+            <pre class="blog-body">{{entry.body}}</pre>
         </div>
         {% endfor %}
     </body>

@@ -4,7 +4,7 @@ threadsafe: true
 
 handlers:
 - url: /.*
-  script: asciichan.app
+  script: blog.app
 
 libraries:
 - name: jinja2

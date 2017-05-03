@@ -19,33 +19,33 @@ class Handler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
-class Entry(db.Model):
+class Blog_db(db.Model):
     title = db.StringProperty(required = True)
-    entry = db.TextProperty(required = True)
+    body = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
 
 
 class MainPage(Handler):
-    def render_front(self, title="", entry="", error=""):
-        entries = db.GqlQuery("select * from entry order by created desc")
-        self.render("blog.html", title=title, entry=entry, error=error, entries = entries)
+    def render_front(self, title="", body="", error=""):
+        entries = db.GqlQuery("select * from Blog_db order by created desc")
+        self.render("blog.html", title=title, body=body, error=error, entries = entries)
 
     def get(self):
         self.render_front()
 
     def post(self):
         title = self.request.get("title")
-        entry = self.request.get("entry")
+        body = self.request.get("body")
 
-        if title and entry:
-            a = Entry(title = title, entry = entry)
-            a.put()
-
-            self.redirect("/")
+        if title and body:
+            row = Blog_db(title = title, body = body)
+            row.put()
+            print(row.key().id())
+            self.redirect("/blog/" + str(row.key().id()))
 
         else:
             error = "We need both title and a body!"
-            self.render_front(title, entry, error)
+            self.render_front(title, body, error)
 
 
 app = webapp2.WSGIApplication([('/blog', MainPage)], debug = True)
