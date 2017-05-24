@@ -1,4 +1,5 @@
 import os
+import re
 import webapp2
 import jinja2
 
@@ -26,16 +27,23 @@ class Blog_db(db.Model):
 
 
 class MainPage(Handler):
-    def render_front(self, title="", body="", error=""):
+    def render_front(self):
         entries = db.GqlQuery("select * from Blog_db order by created desc")
-        self.render("blog.html", title=title, body=body, error=error, entries = entries)
+        self.render("blog.html", entries = entries)
 
     def get(self):
         self.render_front()
 
+class NewPost(Handler):
+    def render_form(self, error=""):
+        self.render("new-post.html", error=error)
+
+    def get(self):
+        self.render_form()
+
     def post(self):
-        title = self.request.get("title")
-        body = self.request.get("body")
+        title = self.request.get("subject")
+        body = self.request.get("content")
 
         if title and body:
             row = Blog_db(title = title, body = body)
@@ -45,8 +53,19 @@ class MainPage(Handler):
 
         else:
             error = "We need both title and a body!"
-            self.render_front(title, body, error)
+            self.render_form(error)
 
 
-app = webapp2.WSGIApplication([('/blog', MainPage)], debug = True)
+class SpecificPost(Handler):
+    def get(self, entry_id):
+        entry = Blog_db.get_by_id(int(entry_id))
+        if entry:
+            self.render("new-blog-entry.html", title = entry.title, body = entry.body)
+        else:
+            self.write("could not render page for entry id: " + entry_id)
+
+
+app = webapp2.WSGIApplication([(r'/blog', MainPage),
+                               (r'/blog/newpost', NewPost),
+                               (r'/blog/(\d+)', SpecificPost)], debug = True)
 
