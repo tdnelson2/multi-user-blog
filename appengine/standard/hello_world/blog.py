@@ -2,12 +2,41 @@ import os
 import re
 import webapp2
 import jinja2
+import signup
+import random
+import string
+import hashlib
+import hmac
+SECRET = 'imsosecret'
 
 from google.appengine.ext import db
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
+
+def hash_str(s):
+    return hmac.new(SECRET, s).hexdigest()
+
+def make_secure_val(s):
+    return "%s|%s" % (s, hash_str(s))
+
+def check_secure_val(s):
+    val = s.split('|')[0]
+    if s == make_secure_val(val):
+        return val
+
+def make_salt():
+    return ''.join(random.choice(string.letters) for x in xrange(5))
+
+def make_pw_hash(name, pw, salt=None):
+    if salt == None:
+        salt = make_salt()
+    h = hashlib.sha256(name + pw + salt + SECRET).hexdigest()
+    return '%s|%s' % (h, salt)
+
+def valid_pw(name, pw, h):
+    return make_pw_hash(name, pw, h.split("|")[1]).split("|")[1] == h.split("|")[1]
 
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
@@ -25,6 +54,10 @@ class Blog_db(db.Model):
     body = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
 
+class User_Account_db(db.Model):
+    username = db.StringProperty(required = True)
+    password_s = db.StringProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True)
 
 class MainPage(Handler):
     def render_front(self):
@@ -64,8 +97,63 @@ class SpecificPost(Handler):
         else:
             self.write("could not render page for entry id: " + entry_id)
 
+class SignupHandler(Handler):
+    def get(self):
+        # self.response.headers['Content-Type'] = 'text/plain'
+        current_user = None
+        user_cookie_str = self.request.cookies.get('CurrentUser')
+        if user_cookie_str:
+            cookie_val = check_secure_val(user_cookie_str)
+            if cookie_val:
+                entry = User_Account_db.get_by_id(int(cookie_val))
+                if not entry == None:
+                    current_user = entry.username
+        if current_user:
+            self.redirect('/blog/welcome')
+        else:
+            self.render('signup.html')
 
-app = webapp2.WSGIApplication([(r'/blog', MainPage),
+    def post(self):
+        username = self.request.get('username', 0)
+        password = self.request.get('password', 0)
+        verify = self.request.get('verify', 0)
+        email = self.request.get('email', 0)
+        username_exists = False
+        hits = db.GqlQuery("SELECT * FROM User_Account_db WHERE username='%s'" % username)
+        if hits.count > 0:
+            username_exists = True
+        params = signup.evaluate_signup(username, password, verify, email, username_exists)
+        if params is None:
+            row = User_Account_db(username = username, password_s = password)
+            row.put()
+            # encode cookie
+            current_user_s = make_secure_val(str(row.key().id()))
+            self.response.headers.add_header('Set-Cookie', str('CurrentUser=%s; Path=/blog/' % current_user_s))
+            self.redirect('/blog/welcome')
+        else:
+            self.render('signup.html',  **params)
+
+class SignupSuccessHandler(Handler):
+    def get(self):
+        current_user = None
+        user_cookie_str = self.request.cookies.get('CurrentUser')
+        if user_cookie_str:
+            # decode cookie
+            cookie_val = check_secure_val(user_cookie_str)
+            if cookie_val:
+                entry = User_Account_db.get_by_id(int(cookie_val))
+                if not entry == None:
+                    current_user = entry.username
+        if current_user:
+            self.render('signup-success.html', username = current_user)
+        else:
+            self.redirect('/blog/signup')
+
+
+app = webapp2.WSGIApplication([(r'/blog/signup', SignupHandler),
+                               (r'/blog/welcome', SignupSuccessHandler),
+                               (r'/blog', MainPage),
                                (r'/blog/newpost', NewPost),
-                               (r'/blog/(\d+)', SpecificPost)], debug = True)
+                               (r'/blog/(\d+)', SpecificPost)], 
+                               debug = True)
 

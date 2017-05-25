@@ -7,8 +7,9 @@ PASSWORD_RE = re.compile(r"^.{3,20}$")
 EMAIL_RE = re.compile(r"^[\S]+@[\S]+.[\S]+$")
 
 
-def evaluate_signup(username, password, verify, email):
+def evaluate_signup(username, password, verify, email, username_exists):
     invalid_username = "<b>That's not a valid username.</b>"
+    username_taken = "<b>Username already exists</b>"
     invalid_password = "<b>That wasn't a valid password.</b>"
     invalid_verify = "<b>Your passwords didn't match.</b>"
     invalid_email = "<b>That's not a valid email.</b>"
@@ -22,7 +23,11 @@ def evaluate_signup(username, password, verify, email):
                   'email_msg':'', 
                   'verify_msg':''}
 
-    if not USER_RE.match(username):
+    if username_exists:
+        er = True
+        exceptions['username_msg'] = username_taken
+        exceptions['username'] = username
+    elif not USER_RE.match(username):
         er = True
         exceptions['username_msg'] = invalid_username
         exceptions['username'] = username
