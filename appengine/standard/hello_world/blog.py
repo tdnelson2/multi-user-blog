@@ -36,7 +36,7 @@ def make_pw_hash(name, pw, salt=None):
     return '%s|%s' % (h, salt)
 
 def valid_pw(name, pw, h):
-    return make_pw_hash(name, pw, h.split("|")[1]).split("|")[1] == h.split("|")[1]
+    return make_pw_hash(name, pw, h.split("|")[1]).split("|")[0] == h.split("|")[0]
 
 def get_username_from_cookie(handler_obj, cookie_name):
     user_cookie_str = handler_obj.request.cookies.get(cookie_name)
@@ -48,6 +48,31 @@ def get_username_from_cookie(handler_obj, cookie_name):
                 return entry.username
     return None
 
+def check_login(username, password = None):
+    hits = db.GqlQuery("SELECT * FROM User_Account_db WHERE username='%s'" % username)
+    username_match = None
+    password_match = None
+    user_id = None
+    entry = None
+    for e in hits:
+        username_match = e.username
+        password_hash = e.password_hash
+        entry = e
+        break
+    if password == None:
+        if username_match == username:
+            return True
+        else:
+            return None
+    else:
+        if username_match == username:
+            if valid_pw(username, password, password_hash):
+                return str(entry.key().id())
+    return None
+
+def write_login_cookie(handler_obj, user_id):
+    current_user_s = make_secure_val(user_id)
+    handler_obj.response.headers.add_header('Set-Cookie', str('CurrentUser=%s; Path=/blog/' % current_user_s))
 
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
@@ -67,7 +92,9 @@ class Blog_db(db.Model):
 
 class User_Account_db(db.Model):
     username = db.StringProperty(required = True)
-    password_s = db.StringProperty(required = True)
+    password_hash = db.StringProperty(required = True)
+    email = db.StringProperty(required = True)
+    salt = db.StringProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
 
 class MainPage(Handler):
@@ -121,20 +148,14 @@ class SignupHandler(Handler):
         password = self.request.get('password', 0)
         verify = self.request.get('verify', 0)
         email = self.request.get('email', 0)
-        username_exists = True
-        hits = db.GqlQuery("SELECT * FROM User_Account_db WHERE username='%s'" % username)
-        un = []
-        for e in hits:
-            un.append(e)
-        if not un:
-            username_exists = False
+        username_exists = check_login(username)
         params = signup.evaluate_signup(username, password, verify, email, username_exists)
         if params is None:
-            row = User_Account_db(username = username, password_s = password)
+            salt = make_salt()
+            password_hash = make_pw_hash(username, password, salt)
+            row = User_Account_db(username = username, password_hash = password_hash, email = email, salt = salt)
             row.put()
-            # encode cookie
-            current_user_s = make_secure_val(str(row.key().id()))
-            self.response.headers.add_header('Set-Cookie', str('CurrentUser=%s; Path=/blog/' % current_user_s))
+            write_login_cookie(self, str(row.key().id()))
             self.redirect('/blog/welcome')
         else:
             self.render('signup.html',  **params)
@@ -147,12 +168,38 @@ class SignupSuccessHandler(Handler):
         else:
             self.redirect('/blog/signup')
 
-# class LoginHandler(Handler):
-#     def get(self):
+class LoginHandler(Handler):
+    def get(self):
+        current_user = get_username_from_cookie(self, 'CurrentUser')
+        if current_user:
+            self.redirect('/blog/welcome')
+        else:
+            self.render('login.html')
+    def post(self):
+        username = self.request.get('username', 0)
+        password = self.request.get('password', 0)
+        params = signup.evaluate_signup(username, password, password, "dummy@dumb.com", False)
+        if params is None:
+            user_id = check_login(username, password)
+            if user_id:
+                write_login_cookie(self, user_id)
+                self.redirect('/blog/welcome')
+            else:
+                self.render('login.html',  password_msg="<b>Invalid login</b>")
+        else:
+            self.render('login.html', **params)
+
+class LogoutHandler(Handler):
+    def get(self):
+        self.response.headers.add_header('Set-Cookie', str('CurrentUser=; Path=/blog/'))
+        self.redirect("/blog/signup")
+
 
 
 
 app = webapp2.WSGIApplication([(r'/blog/signup', SignupHandler),
+                               (r'/blog/login', LoginHandler),
+                               (r'/blog/logout', LogoutHandler),
                                (r'/blog/welcome', SignupSuccessHandler),
                                (r'/blog', MainPage),
                                (r'/blog/newpost', NewPost),

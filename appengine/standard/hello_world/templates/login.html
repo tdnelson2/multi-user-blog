@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-	<h1>Signup</h1>
+	<h1>Login</h1>
 	<style type="text/css">
 		label {
 			font-size: 15pt;
@@ -22,16 +22,6 @@
 		<label for="password">Password</label>
 		<input type="password" name="password">
 		{{password_msg | safe}}
-		<br>
-
-		<label for="verify">Verify Password</label>
-		<input type="password" name="verify">
-		{{verify_msg | safe}}
-		<br>
-
-		<label for="email">Email (optional)</label>
-		<input type="text" name="email" value="{{email}}">
-		{{email_msg | safe}}
 		<br>
 
 		<input type="submit">
