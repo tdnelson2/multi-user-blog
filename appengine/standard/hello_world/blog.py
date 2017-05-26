@@ -38,6 +38,17 @@ def make_pw_hash(name, pw, salt=None):
 def valid_pw(name, pw, h):
     return make_pw_hash(name, pw, h.split("|")[1]).split("|")[1] == h.split("|")[1]
 
+def get_username_from_cookie(handler_obj, cookie_name):
+    user_cookie_str = handler_obj.request.cookies.get(cookie_name)
+    if user_cookie_str:
+        cookie_val = check_secure_val(user_cookie_str)
+        if cookie_val:
+            entry = User_Account_db.get_by_id(int(cookie_val))
+            if not entry == None:
+                return entry.username
+    return None
+
+
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
@@ -99,15 +110,7 @@ class SpecificPost(Handler):
 
 class SignupHandler(Handler):
     def get(self):
-        # self.response.headers['Content-Type'] = 'text/plain'
-        current_user = None
-        user_cookie_str = self.request.cookies.get('CurrentUser')
-        if user_cookie_str:
-            cookie_val = check_secure_val(user_cookie_str)
-            if cookie_val:
-                entry = User_Account_db.get_by_id(int(cookie_val))
-                if not entry == None:
-                    current_user = entry.username
+        current_user = get_username_from_cookie(self, 'CurrentUser')
         if current_user:
             self.redirect('/blog/welcome')
         else:
@@ -138,19 +141,15 @@ class SignupHandler(Handler):
 
 class SignupSuccessHandler(Handler):
     def get(self):
-        current_user = None
-        user_cookie_str = self.request.cookies.get('CurrentUser')
-        if user_cookie_str:
-            # decode cookie
-            cookie_val = check_secure_val(user_cookie_str)
-            if cookie_val:
-                entry = User_Account_db.get_by_id(int(cookie_val))
-                if not entry == None:
-                    current_user = entry.username
+        current_user = get_username_from_cookie(self, 'CurrentUser')
         if current_user:
             self.render('signup-success.html', username = current_user)
         else:
             self.redirect('/blog/signup')
+
+# class LoginHandler(Handler):
+#     def get(self):
+
 
 
 app = webapp2.WSGIApplication([(r'/blog/signup', SignupHandler),
