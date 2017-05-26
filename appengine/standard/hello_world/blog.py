@@ -118,10 +118,13 @@ class SignupHandler(Handler):
         password = self.request.get('password', 0)
         verify = self.request.get('verify', 0)
         email = self.request.get('email', 0)
-        username_exists = False
+        username_exists = True
         hits = db.GqlQuery("SELECT * FROM User_Account_db WHERE username='%s'" % username)
-        if hits.count > 0:
-            username_exists = True
+        un = []
+        for e in hits:
+            un.append(e)
+        if not un:
+            username_exists = False
         params = signup.evaluate_signup(username, password, verify, email, username_exists)
         if params is None:
             row = User_Account_db(username = username, password_s = password)
@@ -154,6 +157,6 @@ app = webapp2.WSGIApplication([(r'/blog/signup', SignupHandler),
                                (r'/blog/welcome', SignupSuccessHandler),
                                (r'/blog', MainPage),
                                (r'/blog/newpost', NewPost),
-                               (r'/blog/(\d+)', SpecificPost)], 
+                               (r'/blog/(\d+)', SpecificPost)],
                                debug = True)
 
