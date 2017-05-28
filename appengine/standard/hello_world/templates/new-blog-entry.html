@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html>
 <head>
     <title></title>
@@ -24,10 +24,13 @@
 
 
     </style>
-<body>
+<body> -->
+{% extends "base.html" %}
+
+{% block content %}
     <div>
         <div class="blog-title">{{title}}</div>
         <pre class="blog-body">{{body}}</pre>
     </div>
-</body>
-</html>
+
+{% endblock %}

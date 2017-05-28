@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html>
     <head>
         <title>Add an entry</title>
@@ -33,7 +33,10 @@
 
 
     </style>
-    <body>
+    <body> -->
+{% extends "base.html" %}
+
+{% block content %}
         <h1>/ascii/</h1>
 
         <hr>
@@ -44,5 +47,5 @@
             <pre class="blog-body">{{entry.body}}</pre>
         </div>
         {% endfor %}
-    </body>
-</html>
+
+{% endblock %}
