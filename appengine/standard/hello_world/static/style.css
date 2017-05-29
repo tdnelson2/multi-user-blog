@@ -1,3 +1,5 @@
+
+
 body {
     font-family: sans-serif;
     width: 800px;
@@ -18,9 +20,9 @@ label {
     width: 140px;
     text-align: right;
 }
-b {
+/*b {
     color: red;
-}
+}*/
 
 hr {
     margin: 20px auto;
@@ -40,7 +42,12 @@ hr {
     font-size: 17px;
 }
 
-.error {
+b {
+/*    padding:0;
+    margin:0;*/
+    margin-top: 2px;
+    font-size: 14px;
+    /*padding-bottom: 0px;*/
     color: red;
 }
 
@@ -49,10 +56,47 @@ hr {
     font-size: 20px;
 }*/
 
-input[type=text] {
-    width: 400px;
+.center {
+    /*margin: auto;*/
+    text-align: center;
+}
+
+br + input {
+    margin-top: 10px;
+}
+
+b + br + input {
+    margin-top: 2px;
+}
+
+input[type=text], input[type=password] {
+/*    width: 400px;
     font-size: 20px;
-    padding: 2px;
+    padding: 2px;*/
+    width: 200px;
+    padding:5px;
+    border:2px solid #ccc;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+
+input[type=submit], a.button {
+    -webkit-appearance: button;
+    -moz-appearance: button;
+    appearance: button;
+    text-decoration: none;
+    color: initial;
+    padding:5px 15px;
+    background:#ccc;
+    border:0 none;
+    cursor:pointer;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    font-size: 18px;
+}
+
+input[type=submit] {
+    margin-top: 30px;
 }
 
 textarea {
@@ -62,9 +106,9 @@ textarea {
     font-family: monospace;
 }
 
-input[type=submit] {
-    font-size: 24px;
-}
+/*.error {
+    margin-bottom: 3px;
+}*/
 
 hr {
     margin: 20px auto;

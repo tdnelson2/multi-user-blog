@@ -20,11 +20,16 @@ USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 PASSWORD_RE = re.compile(r"^.{3,20}$")
 EMAIL_RE = re.compile(r"^[\S]+@[\S]+.[\S]+$")
 
-invalid_username = "<b>That's not a valid username.</b>"
-username_taken = "<b>Username already exists</b>"
-invalid_password = "<b>That wasn't a valid password.</b>"
-invalid_verify = "<b>Your passwords didn't match.</b>"
-invalid_email = "<b>That's not a valid email.</b>"
+# invalid_username = "<div class=\"error\"><b>That's not a valid username.</b></div>"
+# username_taken = "<div class=\"error\"><b>Username already exists</b></div>"
+# invalid_password = "<div class=\"error\"><b>That wasn't a valid password.</b></div>"
+# invalid_verify = "<div class=\"error\"><b>Your passwords didn't match.</b></div>"
+# invalid_email = "<div class=\"error\"><b>That's not a valid email.</b></div>"
+invalid_username = "<b>That's not a valid username.</b><br>"
+username_taken = "<b>Username already exists</b><br>"
+invalid_password = "<b>That wasn't a valid password.</b><br>"
+invalid_verify = "<b>Your passwords didn't match.</b><br>"
+invalid_email = "<b>That's not a valid email.</b><br>"
 
 ##### User security
 def hash_str(s):
@@ -115,7 +120,7 @@ def eval_signup_or_login(username, password, verify = None,
 
     # check email if this is signup
     if email is not None:
-        if email != "" and not EMAIL_RE.match(email):
+        if not EMAIL_RE.match(email):
             er = True
             exceptions['email_msg'] = invalid_email
             exceptions['email'] = email
@@ -179,10 +184,10 @@ class SignupHandler(Handler):
             self.render('signup.html')
 
     def post(self):
-        username = self.request.get('username', 0)
-        password = self.request.get('password', 0)
-        verify = self.request.get('verify', 0)
-        email = self.request.get('email', 0)
+        username = self.request.get('username', "")
+        password = self.request.get('password', "")
+        verify = self.request.get('verify', "")
+        email = self.request.get('email', "")
         username_exists = authenticate_login(username)
         params = eval_signup_or_login(username, password, verify, email, username_exists)
         if params is None:
@@ -212,7 +217,7 @@ class LoginHandler(Handler):
                 self.write_login_cookie(user_id)
                 self.redirect('/bogspot/welcome')
             else:
-                self.render('login.html',  login_msg="<b>Invalid login</b>")
+                self.render('login.html',  login_msg="<br><b>Invalid login</b>")
         else:
             self.render('login.html', **params)
 

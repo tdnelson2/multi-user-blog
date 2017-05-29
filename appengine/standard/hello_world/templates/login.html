@@ -1,33 +1,22 @@
 {% extends "base.html" %}
 
 {% block content %}
-	<h1>Login</h1>
-<!-- 	<style type="text/css">
-		label {
-			font-size: 15pt;
-			display: inline-block;
-			width: 140px;
-			text-align: right;
-		}
-		b {
-			color: red;
-		}
-	</style> -->
-	<form method="post">
-		<label for="username">Username</label>
-		<input type="text" name="username" value="{{username}}">
-		{{username_msg | safe}}
-		<br>
+	<div class="center">
+		<h1>Login</h1>
+		<form method="post">
+			<!-- <label for="username">Username</label> -->
+			<input type="text" name="username" value="{{username}}" placeholder="Username">
+			<br>
+			{{username_msg | safe}}
 
-		<label for="password">Password</label>
-		<input type="password" name="password">
-		{{password_msg | safe}}
-		<br>
+			<!-- <label for="password">Password</label> -->
+			<input type="password" name="password" placeholder="Password">
+			<br>
+			{{password_msg | safe}}
 
-		{{login_msg | safe}}
-		<br>
+			{{login_msg | safe}}
 
-		<input type="submit">
-	</form>
-
+			<input type="submit">
+		</form>
+	</div>
 {% endblock %}
