@@ -1,4 +1,17 @@
 
+.container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.header-shadding {
+    background-color: #ddd;
+    margin: 0
+}
+
+* {
+    color: #888;
+}
 
 body {
     font-family: sans-serif;
@@ -8,19 +21,30 @@ body {
 }
 
 .bogspot-header {
-    background-color: #ddd;
-    color: #888;
-    margin: 0
-    height: 50px
+    width: 7%;
+    margin-top: 5px;
+    margin-left: 12px;
+    margin-bottom: 5px;
+    display: block;
+    left: 0;
 }
 
 .toggle-login {
-    position: relative;
-    right: 0;
-    top: 10px;
-    text-align: right;
-    margin-top: 5px;
-    margin-right: 0px;
+  text-align: right;
+  margin-top: 15px;
+  margin-bottom: 0;
+  margin-right: 0px;
+  display: inline-block;
+  width: 89%;
+}
+
+.login-link:hover {
+    background-color: #ffffff;
+}
+
+a {
+ text-decoration: none;
+    color: #888;
 }
 
 label {
@@ -29,9 +53,6 @@ label {
     width: 140px;
     text-align: right;
 }
-/*b {
-    color: red;
-}*/
 
 hr {
     margin: 20px auto;
@@ -52,11 +73,8 @@ hr {
 }
 
 b {
-/*    padding:0;
-    margin:0;*/
     margin-top: 2px;
     font-size: 14px;
-    /*padding-bottom: 0px;*/
     color: red;
 }
 
@@ -102,6 +120,7 @@ input[type=submit], a.button {
     -webkit-border-radius: 5px;
     border-radius: 5px;
     font-size: 18px;
+    color: #888;
 }
 
 input[type=submit] {
@@ -114,10 +133,6 @@ textarea {
     font-size: 17px;
     font-family: monospace;
 }
-
-/*.error {
-    margin-bottom: 3px;
-}*/
 
 hr {
     margin: 20px auto;

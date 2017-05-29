@@ -96,7 +96,9 @@ def eval_signup_or_login(username, password, verify = None,
                   'username_msg':'',
                   'password_msg':'',
                   'email_msg':'',
-                  'verify_msg':''}
+                  'verify_msg':'',
+                  'login_toggle_link':'/bogspot/login',
+                  'login_toggle_text':'Login'}
 
     # used by signup to produce error if username already exists
     if username_exists:
@@ -142,6 +144,10 @@ class User_Account_db(db.Model):
     salt = db.StringProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
 
+    @classmethod
+    def by_id(cls, uid):
+        return cls.get_by_id(uid)
+
 ##### Page handlers
 class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
@@ -164,16 +170,27 @@ class Handler(webapp2.RequestHandler):
                     return entry.username
         return None
 
+    def read_secure_cookie(self, name):
+        cookie_val = self.request.cookies.get(name)
+        return cookie_val and check_secure_val(cookie_val)
+
     def write_login_cookie(self, user_id):
         current_user_s = make_secure_val(user_id)
         self.response.headers.add_header('Set-Cookie',
                                           str('CurrentUser=%s; Path=/bogspot/'
                                                % current_user_s))
 
-    # def initialize(self, *a, **kw):
-    #     webapp2.RequestHandler.initialize(self, *a, **kw)
-    #     uid = self.read_secure_cookie('user_id')
-    #     self.user = uid and User_Account_db.by_id(int(uid))
+    def toggle_login(self):
+        if self.user:
+            return ["/bogspot/logout", "Log Out"]
+        else:
+            return ["/bogspot/login", "Sign In"]
+
+
+    def initialize(self, *a, **kw):
+        webapp2.RequestHandler.initialize(self, *a, **kw)
+        uid = self.read_secure_cookie("CurrentUser")
+        self.user = uid and User_Account_db.by_id(int(uid))
 
 class SignupHandler(Handler):
     def get(self):
@@ -181,7 +198,7 @@ class SignupHandler(Handler):
         if current_user:
             self.redirect('/bogspot/welcome')
         else:
-            self.render('signup.html')
+            self.render('signup.html', login_toggle_link='/bogspot/login', login_toggle_text='Login')
 
     def post(self):
         username = self.request.get('username', "")
@@ -206,7 +223,7 @@ class LoginHandler(Handler):
         if current_user:
             self.redirect('/bogspot/welcome')
         else:
-            self.render('login.html')
+            self.render('login.html', login_toggle_link='/bogspot/signup', login_toggle_text='Create Account')
     def post(self):
         username = self.request.get('username', 0)
         password = self.request.get('password', 0)
@@ -217,7 +234,7 @@ class LoginHandler(Handler):
                 self.write_login_cookie(user_id)
                 self.redirect('/bogspot/welcome')
             else:
-                self.render('login.html',  login_msg="<br><b>Invalid login</b>")
+                self.render('login.html',  login_msg="<br><b>Invalid login</b>", login_toggle_link='/bogspot/signup', login_toggle_text='Create Account')
         else:
             self.render('login.html', **params)
 
@@ -225,7 +242,7 @@ class WelcomeHandler(Handler):
     def get(self):
         current_user = self.get_username_from_cookie('CurrentUser')
         if current_user:
-            self.render('welcome.html', username = current_user)
+            self.render('welcome.html', username = current_user, login_toggle_link='/bogspot/logout', login_toggle_text='Logout')
         else:
             self.redirect('/bogspot/signup')
 
@@ -238,14 +255,15 @@ class LogoutHandler(Handler):
 class MainPageHandler(Handler):
     def render_front(self):
         entries = db.GqlQuery("select * from Blog_db order by created desc")
-        self.render("main.html", entries = entries)
+        parms = self.toggle_login()
+        self.render("main.html", entries = entries, login_toggle_link=parms[0], login_toggle_text=parms[1])
 
     def get(self):
         self.render_front()
 
 class NewPostHandler(Handler):
     def render_form(self, error=""):
-        self.render("new-post.html", error=error)
+        self.render("new-post.html", error=error, login_toggle_link=parms[0], login_toggle_text=parms[1])
 
     def get(self):
         self.render_form()
@@ -268,7 +286,7 @@ class SpecificPostHandler(Handler):
     def get(self, entry_id):
         entry = Blog_db.get_by_id(int(entry_id))
         if entry:
-            self.render("new-blog-entry.html", title = entry.title, body = entry.body)
+            self.render("new-blog-entry.html", title = entry.title, body = entry.body, login_toggle_link=parms[0], login_toggle_text=parms[1])
         else:
             self.write("could not render page for entry id: " + entry_id)
 
@@ -277,7 +295,7 @@ app = webapp2.WSGIApplication([(r'/bogspot/signup', SignupHandler),
                                (r'/bogspot/logout', LogoutHandler),
                                (r'/bogspot/welcome', WelcomeHandler),
                                (r'/bogspot', MainPageHandler),
-                               (r'/bogspot/NewPostHandler', NewPostHandler),
+                               (r'/bogspot/newpost', NewPostHandler),
                                (r'/bogspot/(\d+)', SpecificPostHandler)],
                                debug = True)
 

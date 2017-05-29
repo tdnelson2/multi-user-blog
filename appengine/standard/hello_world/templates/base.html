@@ -5,13 +5,14 @@
         <link rel="stylesheet" type="text/css" href="/static/style.css">
     </head>
     <body>
-        <h1 class="bogspot-header">
-            bogspot
-        </h1>
-        <h4 class="toggle-login">
-            <a href="/bogspot/login">Login</a>
-        </h4>
-
+        <header class="container header-shadding">
+            <h1 class="bogspot-header">
+                bogspot
+            </h1>
+            <h4 class="toggle-login">
+                <a class="login-link" href="{{login_toggle_link}}">{{login_toggle_text}}</a>
+            </h4>
+        </header>
         {% block content %}
         {% endblock %}
 
