@@ -1,11 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
-
-<h1>Welcome, {{username}}!</h1>
-<br>
-<form action="/bogspot">
-	<input type="submit" value="Enter">
-</form>
+<div class="center">
+	<br>
+	<br>
+	<h1>Welcome, {{username}}!</h1>
+	<br>
+	<form action="/bogspot">
+		<input type="submit" value="Enter">
+	</form>
+</div>
 
 {% endblock %}

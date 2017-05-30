@@ -4,13 +4,26 @@
 {% block content %}
         <h1>/ascii/</h1>
 
+        {% if entries %}
         <hr>
+        {% endif %}
 
         {% for entry in entries %}
         <div class="blog-entry">
-            <div class="blog-title">{{entry.title}}</div>
+            <div class="blog-title">
+            <a href="/bogspot/{{entry.key().id()}}">{{entry.title}}</a>
+            <!-- {{entry.title}} -->
+            </div>
             <pre class="blog-body">{{entry.body}}</pre>
         </div>
         {% endfor %}
+
+        {% if user %}
+        <hr>
+        <form action="/bogspot/newpost">
+			<input type="submit" value="New Post">
+		</form>
+        {% endif %}
+
 
 {% endblock %}
