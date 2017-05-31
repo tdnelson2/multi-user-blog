@@ -7,22 +7,36 @@
 			<!-- <label for="username">Username</label> -->
 			<input type="text" name="username" value="{{username}}" placeholder="Username">
 			<br>
+			{% if username_msg %}
 			{{username_msg | safe}}
+			{% else %}
+			<br>
+			{% endif %}
 
-			<!-- <label for="password">Password</label> -->
 			<input type="password" name="password" placeholder="Password">
 			<br>
+			{% if password_msg %}
 			{{password_msg | safe}}
+			{% else %}
+			<br>
+			{% endif %}
 
-			<!-- <label for="verify">Verify Password</label> -->
 			<input type="password" name="verify" placeholder="Verify">
 			<br>
+			{% if verify_msg %}
 			{{verify_msg | safe}}
+			{% else %}
+			<br>
+			{% endif %}
 
-			<!-- <label for="email">Email (optional)</label> -->
 			<input type="text" name="email" value="{{email}}" placeholder="email">
 			<br>
+			{% if email_msg %}
 			{{email_msg | safe}}
+			{% else %}
+			<br>
+			{% endif %}
+			<br>
 
 			<input type="submit">
 		</form>

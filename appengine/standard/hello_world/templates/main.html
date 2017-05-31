@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-        <h1>/ascii/</h1>
+        <h2>recent posts</h2>
 
         {% if entries %}
         <hr>
@@ -17,13 +17,17 @@
             <pre class="blog-body">{{entry.body}}</pre>
         </div>
         {% endfor %}
+        <hr>
 
         {% if user %}
-        <hr>
         <form action="/bogspot/newpost">
 			<input type="submit" value="New Post">
 		</form>
-        {% endif %}
+        {% else %}
+        <form action="/bogspot/login">
+			<input type="submit" value="New Post">
+		</form>
+		{% endif %}
 
 
 {% endblock %}

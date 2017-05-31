@@ -88,13 +88,13 @@ b {
     text-align: center;
 }
 
-br + input {
+/*br + input {
     margin-top: 10px;
 }
 
 b + br + input {
     margin-top: 2px;
-}
+}*/
 
 .monospace {
     font-size: 17px;
@@ -128,9 +128,15 @@ input[type=submit], a.button {
     color: #888;
 }
 
-input[type=submit] {
-    margin-top: 30px;
+.as-link {
+    background: none;
+    border: none;
+    cursor: pointer;
 }
+
+/*input[type=submit] {
+    margin-top: 30px;
+}*/
 
 textarea {
     width: 400px;

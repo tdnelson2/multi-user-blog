@@ -6,6 +6,9 @@ import hmac
 from secret import SECRET
 from string import letters
 from string import digits
+# from markdown import *
+# http://pythonhosted.org/Markdown/install.html
+# https://pythonhosted.org/Markdown/reference.html
 
 import webapp2
 import jinja2
@@ -197,6 +200,9 @@ class Handler(webapp2.RequestHandler):
         else:
             return ["/bogspot/login", "Sign In"]
 
+    def render_new_post_form(self, error="", title="", body="", cancel_button_link="/bogspot"):
+        params = self.toggle_login()
+        self.render("new-post.html", error=error, title=title, body=body, cancel_button_link=cancel_button_link, login_toggle_link=params[0], login_toggle_text=params[1])
 
     def initialize(self, *a, **kw):
         webapp2.RequestHandler.initialize(self, *a, **kw)
@@ -283,12 +289,8 @@ class MainRedirectHandler(Handler):
         self.redirect("/bogspot/index")
 
 class NewPostHandler(Handler):
-    def render_form(self, error=""):
-        params = self.toggle_login()
-        self.render("new-post.html", error=error, login_toggle_link=params[0], login_toggle_text=params[1])
-
     def get(self):
-        self.render_form()
+        self.render_new_post_form()
 
     def post(self):
         title = self.request.get("subject")
@@ -297,12 +299,9 @@ class NewPostHandler(Handler):
         if title and body:
             row = Blog_db(title = title, body = body, author_id = self.user.key().id())
             row.put()
-            print(row.key().id())
             self.redirect("/bogspot/" + str(row.key().id()))
-
         else:
-            error = "We need both title and a body!"
-            self.render_form(error)
+            self.render_new_post_form(error = "We need both title and a body!", title=title, body=body)
 
 class SpecificPostHandler(Handler):
     def get(self, entry_id):
@@ -313,23 +312,45 @@ class SpecificPostHandler(Handler):
             self.render("new-blog-entry.html", entry = entry, user = self.user, entry_id_hash = entry_id_hash, login_toggle_link=parms[0], login_toggle_text=parms[1])
         else:
             self.write("could not render page for entry id: " + entry_id)
+    # def post(self):
+        # should_delete = self.request.get("delete")
+        # self.write("should_delete")
+    def post(self, entry_id):
+        # http://fontawesome.io/
+        if self.request.get("delete"):
+            self.write("delete button pressed")
+        elif self.request.get("like"):
+            self.write("like button pressed")
+
 
 class EditPostHandler(Handler):
     def get(self, entry_id_hash):
         entry_id = check_secure_val(entry_id_hash)
         if entry_id:
             entry = Blog_db.get_by_id(int(entry_id))
-            params = self.toggle_login()
-            self.render("new-post.html", title = entry.title, body = entry.body, login_toggle_link=params[0], login_toggle_text=params[1])
+            if entry.author_id == self.user.key().id():
+                params = self.toggle_login()
+                self.render_new_post_form(title = entry.title, body = entry.body, cancel_button_link = "/bogspot/%s" % entry_id)
+            else:
+                self.write("You are not allowed to edit this post")
+        else:
+            self.write("The URL for this entry has been tampered with")
     def post(self, entry_id_hash):
         title = self.request.get("subject")
         body = self.request.get("content")
+        entry_id = check_secure_val(entry_id_hash)
         if title and body:
-            entry_id = check_secure_val(entry_id_hash)
             if entry_id:
                 entry = Blog_db.get_by_id(int(entry_id))
                 entry.title = title
-                entry.
+                entry.body = body
+                entry.put()
+                self.redirect("/bogspot/" + str(entry.key().id()))
+            else:
+                self.write("Somehow you were almost able to post this without correct permisions")
+        else:
+            self.render_new_post_form(error = "We need both title and a body!", title=title, body=body, cancel_button_link = "/bogspot/%s" % entry_id)
+
 
 
 
@@ -343,6 +364,7 @@ app = webapp2.WSGIApplication([(r'/bogspot/signup', SignupHandler),
                                (r'/bogspot/newpost', NewPostHandler),
                                (r'/bogspot/(\d+)', SpecificPostHandler),
                                (r'/bogspot/edit/(\w+)', EditPostHandler),
+                               (r'/bogspot/', MainRedirectHandler),
                                (r'/bogspot', MainRedirectHandler)],
                                debug = True)
 

@@ -10,9 +10,25 @@
     </div>
     
     {% if user and user.key().id() == entry.author_id %}
-    <br>
+
+<!--     <br>
     <hr>
-    <a href="/bogspot/edit/{{entry_id_hash}}">Edit</a>
+    <a href="/bogspot/edit/{{entry_id_hash}}">Edit</a> -->
+    <form method="post">
+        <!-- <input type="submit" name="delete" value="    Delete" class="as-link"> -->
+        <input type="submit" name="delete" value="Delete">
+        <input type="submit" name="like" value="Like">
+    </form>
+
+    {% elif user == None %}
+
+<!--     <br>
+    <hr>
+    <a href="/bogspot/login">Edit</a> -->
+    <form action="/bogspot/login">
+        <!-- <input type="submit" value="    Delete" class="as-link"> -->
+    </form>
+
     {% endif %}
     
 
