@@ -155,9 +155,16 @@ class User_Account_db(db.Model):
 
 def all_posts():
     posts = db.GqlQuery("select * from Blog_db order by created desc")
-    if posts.count > 0:
-        return posts
-    return None
+    is_empty = True
+    try:
+        r = posts[0]
+        if r:
+            return posts
+    except IndexError:
+        return None
+    # if posts.count > 0:
+    #     return posts
+    # return 0
 
 ##### Page handlers
 class Handler(webapp2.RequestHandler):
@@ -317,6 +324,7 @@ class SpecificPostHandler(Handler):
         # self.write("should_delete")
     def post(self, entry_id):
         # http://fontawesome.io/
+        # self.write(self)
         if self.request.get("delete"):
             self.write("delete button pressed")
         elif self.request.get("like"):

@@ -2,30 +2,30 @@
 {% extends "base.html" %}
 
 {% block content %}
-        <h2>recent posts</h2>
+        <h2><i>recent posts</i></h2>
 
         {% if entries %}
         <hr>
-        {% endif %}
-
         {% for entry in entries %}
         <div class="blog-entry">
             <div class="blog-title">
             <a href="/bogspot/{{entry.key().id()}}">{{entry.title}}</a>
-            <!-- {{entry.title}} -->
             </div>
             <pre class="blog-body">{{entry.body}}</pre>
         </div>
         {% endfor %}
+        {% else %}
+        <h2 class="center">No posts yet!</h2>
+        {% endif %}
         <hr>
 
         {% if user %}
         <form action="/bogspot/newpost">
-			<input type="submit" value="New Post">
+			<input type="submit" value="New Post" class="submit-btn">
 		</form>
         {% else %}
         <form action="/bogspot/login">
-			<input type="submit" value="New Post">
+			<input type="submit" value="New Post" class="submit-btn">
 		</form>
 		{% endif %}
 

@@ -13,6 +13,15 @@
     color: #888;
 }
 
+@font-face {
+    font-family: FontAwesome;
+    src: url(fontawesome-webfont.ttf) format("truetype");
+}
+
+.font-awesome {
+    font-family: FontAwesome, Verdana, Tahoma;
+}
+
 body {
     font-family: sans-serif;
     width: 800px;
@@ -112,14 +121,21 @@ input[type=text], input[type=password], textarea {
     border-radius: 5px;
 }
 
-input[type=submit], a.button {
+} .not-clicked {
+    /*color: #e3e3e3;*/
+    color: #ffffff;
+}
+
+/*input[type=submit], a.button {*/
+.submit-btn {
     -webkit-appearance: button;
     -moz-appearance: button;
     appearance: button;
     text-decoration: none;
-    color: initial;
     padding:5px 15px;
     background:#ccc;
+    /*background: #ffffff;*/
+    /*color: #ffffff;*/
     border:0 none;
     cursor:pointer;
     -webkit-border-radius: 5px;
@@ -130,8 +146,16 @@ input[type=submit], a.button {
 
 .as-link {
     background: none;
+    color: #888;
     border: none;
+    padding:0;
     cursor: pointer;
+    font-size: 18px;
+    padding:0px 5px;
+}
+
+.not-clicked {
+    color: #e3e3e3;
 }
 
 /*input[type=submit] {
