@@ -140,6 +140,7 @@ class Blog_db(db.Model):
     body = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
     author_id = db.IntegerProperty(required = True)
+    likes = db.ListProperty(int)
 
 
 class User_Account_db(db.Model):
@@ -153,18 +154,25 @@ class User_Account_db(db.Model):
     def by_id(cls, uid):
         return cls.get_by_id(uid)
 
-def all_posts():
-    posts = db.GqlQuery("select * from Blog_db order by created desc")
-    is_empty = True
+def db_query_is_empty(result):
     try:
-        r = posts[0]
-        if r:
-            return posts
+        r = result[0]
+        return False
     except IndexError:
-        return None
-    # if posts.count > 0:
-    #     return posts
-    # return 0
+        return True
+
+def all_posts():
+    posts = db.GqlQuery("SELECT * FROM Blog_db ORDER BY created DESC")
+    # test if anything was returned
+    if not db_query_is_empty(posts):
+        return posts
+    return None
+    # try:
+    #     r = posts[0]
+    #     if r:
+    #         return posts
+    # except IndexError:
+    #     return None
 
 ##### Page handlers
 class Handler(webapp2.RequestHandler):
@@ -191,6 +199,7 @@ class Handler(webapp2.RequestHandler):
                     return None
         return None
 
+
     def read_secure_cookie(self, name):
         cookie_val = self.request.cookies.get(name)
         return cookie_val and check_secure_val(cookie_val)
@@ -200,6 +209,40 @@ class Handler(webapp2.RequestHandler):
         self.response.headers.add_header('Set-Cookie',
                                           str('CurrentUser=%s; Path=/bogspot/'
                                                % current_user_s))
+
+    def eval_permissions(self, entry_author_id, should_redirect=True):        
+        if self.user:
+            if self.user.key().id() == entry_author_id:
+                # permission granted
+                return True
+            else:
+                # permission denied
+                if should_redirect:
+                    self.redirect('/bogspot/edit-permission-denied?type=not_author')
+                return False
+        else:
+            # redirect to login
+            self.redirect('/bogspot/login')
+            return False
+
+    def is_liked(self, entry):
+        if self.user:
+            likes = entry.likes
+            user_id = self.user.key().id()
+            if user_id in likes:
+                self.write("is liked")
+                return True
+        self.write("not liked")
+        return False
+        #     results = db.GqlQuery("SELECT * FROM Blog_db WHERE id = %s AND likes = %s" % (str(entry.key().id()), str(self.user.key().id())))
+        #     self.write(results[0])
+        #     if not db_query_is_empty(results):
+        #         # liked
+        #         self.write("liked")
+        #         return True
+        # # Not liked or not logged in
+        # self.write("not liked")
+        # return False
 
     def toggle_login(self):
         if self.user:
@@ -314,21 +357,43 @@ class SpecificPostHandler(Handler):
     def get(self, entry_id):
         entry = Blog_db.get_by_id(int(entry_id))
         if entry:
-            entry_id_hash = make_secure_val(entry_id)
+            liked = "not-clicked"
+            if self.is_liked(entry):
+                liked = "clicked"
             parms = self.toggle_login()
-            self.render("new-blog-entry.html", entry = entry, user = self.user, entry_id_hash = entry_id_hash, login_toggle_link=parms[0], login_toggle_text=parms[1])
+            self.render("new-blog-entry.html", entry = entry, user = self.user, click_status = liked, login_toggle_link=parms[0], login_toggle_text=parms[1])
         else:
             self.write("could not render page for entry id: " + entry_id)
-    # def post(self):
-        # should_delete = self.request.get("delete")
-        # self.write("should_delete")
     def post(self, entry_id):
         # http://fontawesome.io/
         # self.write(self)
-        if self.request.get("delete"):
-            self.write("delete button pressed")
+        entry = Blog_db.get_by_id(int(entry_id))
+        if self.request.get("edit"):
+            if self.eval_permissions(entry.author_id):
+                entry_id_hash = make_secure_val(entry_id)
+                self.redirect('/bogspot/edit/%s' % entry_id_hash)
+        elif self.request.get("delete"):
+            if self.eval_permissions(entry.author_id):
+                entry.key().delete()
+                self.redirect('/bogspot/index')
         elif self.request.get("like"):
-            self.write("like button pressed")
+            if self.eval_permissions(entry.author_id, False):
+                # can't like your own post
+                self.redirect('bogspot/edit-permission-denied?type=like')
+            else:
+                parms = self.toggle_login()
+                if self.user:
+                    if self.is_liked(entry):
+                        # already liked, unklike
+                        entry.likes.remove(self.user.key().id())
+                        self.render("new-blog-entry.html", entry = entry, user = self.user, like_status = "not-clicked", login_toggle_link=parms[0], login_toggle_text=parms[1])
+                    else:
+                        # like
+                        entry.likes.append(self.user.key().id())
+                        entry.put()
+                        self.render("new-blog-entry.html", entry = entry, user = self.user, like_status = "clicked", login_toggle_link=parms[0], login_toggle_text=parms[1])
+                else:
+                    redirect('/bogspot/login')
 
 
 class EditPostHandler(Handler):
@@ -359,6 +424,10 @@ class EditPostHandler(Handler):
         else:
             self.render_new_post_form(error = "We need both title and a body!", title=title, body=body, cancel_button_link = "/bogspot/%s" % entry_id)
 
+class EditPermissionDeniedHandler(Handler):
+    def get(self):
+        self.render('edit-permission-denied.html')
+
 
 
 
@@ -372,6 +441,7 @@ app = webapp2.WSGIApplication([(r'/bogspot/signup', SignupHandler),
                                (r'/bogspot/newpost', NewPostHandler),
                                (r'/bogspot/(\d+)', SpecificPostHandler),
                                (r'/bogspot/edit/(\w+)', EditPostHandler),
+                               (r'/bogspot/edit-permission-denied', EditPermissionDeniedHandler),
                                (r'/bogspot/', MainRedirectHandler),
                                (r'/bogspot', MainRedirectHandler)],
                                debug = True)

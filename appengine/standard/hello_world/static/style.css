@@ -9,10 +9,6 @@
     margin: 0
 }
 
-* {
-    color: #888;
-}
-
 @font-face {
     font-family: FontAwesome;
     src: url(fontawesome-webfont.ttf) format("truetype");
@@ -87,23 +83,10 @@ b {
     color: red;
 }
 
-/*label {
-    display: block;
-    font-size: 20px;
-}*/
-
 .center {
     /*margin: auto;*/
     text-align: center;
 }
-
-/*br + input {
-    margin-top: 10px;
-}
-
-b + br + input {
-    margin-top: 2px;
-}*/
 
 .monospace {
     font-size: 17px;
@@ -111,9 +94,6 @@ b + br + input {
 }
 
 input[type=text], input[type=password], textarea {
-/*    width: 400px;
-    font-size: 20px;
-    padding: 2px;*/
     width: 200px;
     padding:5px;
     border:2px solid #ccc;
@@ -121,12 +101,6 @@ input[type=text], input[type=password], textarea {
     border-radius: 5px;
 }
 
-} .not-clicked {
-    /*color: #e3e3e3;*/
-    color: #ffffff;
-}
-
-/*input[type=submit], a.button {*/
 .submit-btn {
     -webkit-appearance: button;
     -moz-appearance: button;
@@ -134,8 +108,6 @@ input[type=text], input[type=password], textarea {
     text-decoration: none;
     padding:5px 15px;
     background:#ccc;
-    /*background: #ffffff;*/
-    /*color: #ffffff;*/
     border:0 none;
     cursor:pointer;
     -webkit-border-radius: 5px;
@@ -154,12 +126,24 @@ input[type=text], input[type=password], textarea {
     padding:0px 5px;
 }
 
-.not-clicked {
-    color: #e3e3e3;
+/*} .enabled {
+    background: none;
+    color: #f6f6f6;
+    border: none;
+    padding:0;
+    cursor: pointer;
+    font-size: 18px;
+    padding:0px 5px;
 }
 
-/*input[type=submit] {
-    margin-top: 30px;
+} .disabled {
+    background: none;
+    color: #888;
+    border: none;
+    padding:0;
+    cursor: pointer;
+    font-size: 18px;
+    padding:0px 5px;
 }*/
 
 textarea {
@@ -173,5 +157,9 @@ hr {
 
 .blog-entry + .blog-entry {
     margin-top: 20px;
+}
+
+* {
+    color: #888;
 }
 

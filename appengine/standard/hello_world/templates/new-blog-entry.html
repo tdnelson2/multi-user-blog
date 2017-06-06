@@ -8,25 +8,12 @@
         <div class="blog-title">{{entry.title}}</div>
         <pre class="blog-body">{{entry.body}}</pre>
     </div>
-    
-    {% if user and user.key().id() == entry.author_id %}
         <br>
         <form method="post">
             <!-- http://fontawesome.io/cheatsheet/ -->
+            <input type="submit" name="edit" value="&#xf044;" class="as-link font-awesome">
             <input type="submit" name="delete" value="&#xf1f8;" class="as-link font-awesome">
-            <input type="submit" name="like" value="&#xf164;" class="as-link not-clicked font-awesome">
+            <input type="submit" name="like" value="&#xf164;" class="as-link font-awesome">
         </form>
-
-    {% elif user == None %}
-
-<!--     <br>
-    <hr>
-    <a href="/bogspot/login">Edit</a> -->
-    <form action="/bogspot/login">
-        <!-- <input type="submit" value="    Delete" class="as-link"> -->
-    </form>
-
-    {% endif %}
-    
 
 {% endblock %}
