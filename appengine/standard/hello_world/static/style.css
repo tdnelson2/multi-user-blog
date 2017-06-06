@@ -84,7 +84,6 @@ b {
 }
 
 .center {
-    /*margin: auto;*/
     text-align: center;
 }
 
@@ -126,25 +125,21 @@ input[type=text], input[type=password], textarea {
     padding:0px 5px;
 }
 
-/*} .enabled {
-    background: none;
-    color: #f6f6f6;
-    border: none;
-    padding:0;
-    cursor: pointer;
-    font-size: 18px;
-    padding:0px 5px;
+.enabled:hover {
+    color: #dcdcdc;
 }
 
-} .disabled {
-    background: none;
+.disabled:hover {
     color: #888;
-    border: none;
-    padding:0;
-    cursor: pointer;
-    font-size: 18px;
-    padding:0px 5px;
-}*/
+}
+
+.disabled {
+    color: #dcdcdc;
+}
+
+.enabled {
+    color: #888;
+}
 
 textarea {
     width: 400px;

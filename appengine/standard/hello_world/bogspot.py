@@ -210,7 +210,7 @@ class Handler(webapp2.RequestHandler):
                                           str('CurrentUser=%s; Path=/bogspot/'
                                                % current_user_s))
 
-    def eval_permissions(self, entry_author_id, should_redirect=True):        
+    def eval_permissions(self, entry_author_id, should_redirect=True):
         if self.user:
             if self.user.key().id() == entry_author_id:
                 # permission granted
@@ -218,7 +218,7 @@ class Handler(webapp2.RequestHandler):
             else:
                 # permission denied
                 if should_redirect:
-                    self.redirect('/bogspot/edit-permission-denied?type=not_author')
+                    self.redirect('/bogspot/error?type=not_author')
                 return False
         else:
             # redirect to login
@@ -230,19 +230,8 @@ class Handler(webapp2.RequestHandler):
             likes = entry.likes
             user_id = self.user.key().id()
             if user_id in likes:
-                self.write("is liked")
                 return True
-        self.write("not liked")
         return False
-        #     results = db.GqlQuery("SELECT * FROM Blog_db WHERE id = %s AND likes = %s" % (str(entry.key().id()), str(self.user.key().id())))
-        #     self.write(results[0])
-        #     if not db_query_is_empty(results):
-        #         # liked
-        #         self.write("liked")
-        #         return True
-        # # Not liked or not logged in
-        # self.write("not liked")
-        # return False
 
     def toggle_login(self):
         if self.user:
@@ -357,11 +346,11 @@ class SpecificPostHandler(Handler):
     def get(self, entry_id):
         entry = Blog_db.get_by_id(int(entry_id))
         if entry:
-            liked = "not-clicked"
+            liked = "disabled"
             if self.is_liked(entry):
-                liked = "clicked"
+                liked = "enabled"
             parms = self.toggle_login()
-            self.render("new-blog-entry.html", entry = entry, user = self.user, click_status = liked, login_toggle_link=parms[0], login_toggle_text=parms[1])
+            self.render("new-blog-entry.html", entry = entry, user = self.user, like_status = liked, login_toggle_link=parms[0], login_toggle_text=parms[1])
         else:
             self.write("could not render page for entry id: " + entry_id)
     def post(self, entry_id):
@@ -374,26 +363,27 @@ class SpecificPostHandler(Handler):
                 self.redirect('/bogspot/edit/%s' % entry_id_hash)
         elif self.request.get("delete"):
             if self.eval_permissions(entry.author_id):
-                entry.key().delete()
-                self.redirect('/bogspot/index')
+                entry.delete()
+                self.redirect('/bogspot/deleted')
         elif self.request.get("like"):
             if self.eval_permissions(entry.author_id, False):
                 # can't like your own post
-                self.redirect('bogspot/edit-permission-denied?type=like')
+                self.redirect('/bogspot/error?type=like')
             else:
                 parms = self.toggle_login()
                 if self.user:
                     if self.is_liked(entry):
                         # already liked, unklike
                         entry.likes.remove(self.user.key().id())
-                        self.render("new-blog-entry.html", entry = entry, user = self.user, like_status = "not-clicked", login_toggle_link=parms[0], login_toggle_text=parms[1])
+                        entry.put()
+                        self.redirect("/bogspot/%s" % str(entry.key().id()))
                     else:
                         # like
                         entry.likes.append(self.user.key().id())
                         entry.put()
-                        self.render("new-blog-entry.html", entry = entry, user = self.user, like_status = "clicked", login_toggle_link=parms[0], login_toggle_text=parms[1])
+                        self.redirect("/bogspot/%s" % str(entry.key().id()))
                 else:
-                    redirect('/bogspot/login')
+                    self.redirect('/bogspot/login')
 
 
 class EditPostHandler(Handler):
@@ -426,7 +416,15 @@ class EditPostHandler(Handler):
 
 class EditPermissionDeniedHandler(Handler):
     def get(self):
-        self.render('edit-permission-denied.html')
+        type = self.request.get('type')
+        if type == 'not_author':
+            self.render('error.html', msg="You are not authorized to modify this post!")
+        elif type == 'like':
+            self.render('error.html', msg="You can't like your own post. That's just silly.")
+
+class PostDeletedHandler(Handler):
+    def get(self):
+        self.render('error.html', msg="Post has been deleted")
 
 
 
@@ -441,7 +439,8 @@ app = webapp2.WSGIApplication([(r'/bogspot/signup', SignupHandler),
                                (r'/bogspot/newpost', NewPostHandler),
                                (r'/bogspot/(\d+)', SpecificPostHandler),
                                (r'/bogspot/edit/(\w+)', EditPostHandler),
-                               (r'/bogspot/edit-permission-denied', EditPermissionDeniedHandler),
+                               (r'/bogspot/error', EditPermissionDeniedHandler),
+                               (r'/bogspot/deleted', PostDeletedHandler),
                                (r'/bogspot/', MainRedirectHandler),
                                (r'/bogspot', MainRedirectHandler)],
                                debug = True)
