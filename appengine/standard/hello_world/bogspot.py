@@ -66,29 +66,43 @@ def valid_pw(name, pw, h):
 def authenticate_login(username, password = None):
     query = "SELECT * FROM User_Account_db WHERE username='%s'" % username
     hits = db.GqlQuery(query)
-    username_match = None
-    password_match = None
-    user_id = None
-    entry = None
-    for e in hits:
-        username_match = e.username
-        password_hash = e.password_hash
-        entry = e
-        break
+    if not db_query_is_empty(hits):
+        entry = hits[0]
+    # This can be used by signup to check if username already exist
+        if password == None:
+            if entry.username == username:
+                return True
+            else:
+                return False
+    # This is used by login to authenticate
+        else:
+            if entry.username == username:
+                if valid_pw(username, password, entry.password_hash):
+                    return str(entry.key().id())
+    return None
+    # username_match = None
+    # password_match = None
+    # user_id = None
+    # entry = None
+    # for e in hits:
+    #     username_match = e.username
+    #     password_hash = e.password_hash
+    #     entry = e
+    #     break
 
     # This can be used by signup to check if username already exist
-    if password == None:
-        if username_match == username:
-            return True
-        else:
-            return None
+    # if password == None:
+    #     if username_match == username:
+    #         return True
+    #     else:
+    #         return None
 
     # This is used by login to authenticate
-    else:
-        if username_match == username:
-            if valid_pw(username, password, password_hash):
-                return str(entry.key().id())
-    return None
+    # else:
+    #     if username_match == username:
+    #         if valid_pw(username, password, password_hash):
+    #             return str(entry.key().id())
+    # return None
 
 def eval_signup_or_login(username, password, verify = None,
                          email = None, username_exists = False):
@@ -154,6 +168,12 @@ class User_Account_db(db.Model):
     def by_id(cls, uid):
         return cls.get_by_id(uid)
 
+class Comments_db(db.Model):
+    blog_post_id = db.IntegerProperty(required = True)
+    user_id = db.IntegerProperty(required = True)
+    body = db.TextProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True)
+
 def db_query_is_empty(result):
     try:
         r = result[0]
@@ -167,12 +187,14 @@ def all_posts():
     if not db_query_is_empty(posts):
         return posts
     return None
-    # try:
-    #     r = posts[0]
-    #     if r:
-    #         return posts
-    # except IndexError:
-    #     return None
+
+def get_comments(entry_id):
+    query = "SELECT * FROM Comments_db WHERE blog_post_id=%d ORDER BY created ASC" % entry_id
+    hits = db.GqlQuery(query)
+    if db_query_is_empty(hits):
+        return None
+    else:
+        return hits
 
 ##### Page handlers
 class Handler(webapp2.RequestHandler):
@@ -218,7 +240,7 @@ class Handler(webapp2.RequestHandler):
             else:
                 # permission denied
                 if should_redirect:
-                    self.redirect('/bogspot/error?type=not_author')
+                    self.redirect('/bogspot/dialog?type=not_author')
                 return False
         else:
             # redirect to login
@@ -346,11 +368,14 @@ class SpecificPostHandler(Handler):
     def get(self, entry_id):
         entry = Blog_db.get_by_id(int(entry_id))
         if entry:
+            comments = get_comments(int(entry_id))
+            self.write('comments:')
+            self.write(comments)
             liked = "disabled"
             if self.is_liked(entry):
                 liked = "enabled"
             parms = self.toggle_login()
-            self.render("new-blog-entry.html", entry = entry, user = self.user, like_status = liked, login_toggle_link=parms[0], login_toggle_text=parms[1])
+            self.render("new-blog-entry.html", entry = entry, user = self.user, like_status = liked, comments = comments, User_Accounts = User_Account_db, login_toggle_link=parms[0], login_toggle_text=parms[1])
         else:
             self.write("could not render page for entry id: " + entry_id)
     def post(self, entry_id):
@@ -368,7 +393,7 @@ class SpecificPostHandler(Handler):
         elif self.request.get("like"):
             if self.eval_permissions(entry.author_id, False):
                 # can't like your own post
-                self.redirect('/bogspot/error?type=like')
+                self.redirect('/bogspot/dialog?type=like')
             else:
                 parms = self.toggle_login()
                 if self.user:
@@ -384,6 +409,13 @@ class SpecificPostHandler(Handler):
                         self.redirect("/bogspot/%s" % str(entry.key().id()))
                 else:
                     self.redirect('/bogspot/login')
+        else: 
+            comment = self.request.get('comment')
+            if comment:
+                self.write(comment)
+                row = Comments_db(blog_post_id = entry.key().id(), user_id = self.user.key().id(), body = comment)
+                row.put()
+                self.redirect('/bogspot/dialog?type=comment_added')
 
 
 class EditPostHandler(Handler):
@@ -414,17 +446,19 @@ class EditPostHandler(Handler):
         else:
             self.render_new_post_form(error = "We need both title and a body!", title=title, body=body, cancel_button_link = "/bogspot/%s" % entry_id)
 
-class EditPermissionDeniedHandler(Handler):
+class DialogHandler(Handler):
     def get(self):
         type = self.request.get('type')
         if type == 'not_author':
-            self.render('error.html', msg="You are not authorized to modify this post!")
+            self.render('dialog.html', msg="You are not authorized to modify this post!")
         elif type == 'like':
-            self.render('error.html', msg="You can't like your own post. That's just silly.")
+            self.render('dialog.html', msg="You can't like your own post. That's just silly.")
+        elif type == 'comment_added':
+            self.render('dialog.html', msg="Thanks for contributing to the discussion!")
 
 class PostDeletedHandler(Handler):
     def get(self):
-        self.render('error.html', msg="Post has been deleted")
+        self.render('dialog.html', msg="Post has been deleted")
 
 
 
@@ -439,7 +473,7 @@ app = webapp2.WSGIApplication([(r'/bogspot/signup', SignupHandler),
                                (r'/bogspot/newpost', NewPostHandler),
                                (r'/bogspot/(\d+)', SpecificPostHandler),
                                (r'/bogspot/edit/(\w+)', EditPostHandler),
-                               (r'/bogspot/error', EditPermissionDeniedHandler),
+                               (r'/bogspot/dialog', DialogHandler),
                                (r'/bogspot/deleted', PostDeletedHandler),
                                (r'/bogspot/', MainRedirectHandler),
                                (r'/bogspot', MainRedirectHandler)],
