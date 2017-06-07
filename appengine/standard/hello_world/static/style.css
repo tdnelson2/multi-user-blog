@@ -2,6 +2,8 @@
 .container {
     display: flex;
     flex-wrap: wrap;
+/*    width: 800px;
+    margin: 0 auto;*/
 }
 
 .header-shadding {
@@ -23,6 +25,8 @@ body {
     width: 800px;
     margin: 0 auto;
     padding: 10px;
+/*    vertical-align:top;
+    display:inline-block;*/
 }
 
 .bogspot-header {
@@ -65,6 +69,19 @@ hr {
 
 .blog-entry + .blog-entry {
     margin-top: 20px;
+}
+
+.comment-entry + .comment-entry {
+    margin-top: 20px;
+}
+
+.comment-author {
+    font-size: 12pt;
+    color: #2a2a2a;
+}
+
+.comment-body {
+    font-size: 10pt;
 }
 
 .blog-title {

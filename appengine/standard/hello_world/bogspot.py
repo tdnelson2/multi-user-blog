@@ -185,7 +185,14 @@ def all_posts():
     posts = db.GqlQuery("SELECT * FROM Blog_db ORDER BY created DESC")
     # test if anything was returned
     if not db_query_is_empty(posts):
-        return posts
+        post_dicts = []
+        for post in posts:
+            author = User_Account_db.get_by_id(int(post.author_id)).username
+            if author:
+                entry = {"id": post.key().id(), "author": author, "title": post.title, "body": post.body, "likes": post.likes}
+                post_dicts.append(entry)
+        if post_dicts:
+            return post_dicts
     return None
 
 def get_comments(entry_id):
@@ -194,7 +201,19 @@ def get_comments(entry_id):
     if db_query_is_empty(hits):
         return None
     else:
-        return hits
+        comments = []
+        for hit in hits:
+            username = User_Account_db.get_by_id(hit.user_id).username
+            if username:
+                entry = {"username": username, "user_id": hit.user_id, "body": hit.body, "id": str(hit.key().id())}
+                comments.append(entry)
+            # else:
+                # probably should delete the comment if the user no longer exists
+        if comments:
+            return comments
+    return None
+
+
 
 ##### Page handlers
 class Handler(webapp2.RequestHandler):
@@ -219,6 +238,13 @@ class Handler(webapp2.RequestHandler):
                     return entry
                 except AttributeError:
                     return None
+        return None
+
+    def get_db_from_id_hash(self, id_hash, db):
+        entry_id = check_secure_val(id_hash)
+        if entry_id:
+            entry = db.get_by_id(int(entry_id))
+            return entry
         return None
 
 
@@ -261,9 +287,15 @@ class Handler(webapp2.RequestHandler):
         else:
             return ["/bogspot/login", "Sign In"]
 
-    def render_new_post_form(self, error="", title="", body="", cancel_button_link="/bogspot"):
+    def render_edit_form(self, type="blog-post", error="", title="", body="", cancel_button_link="/bogspot"):
         params = self.toggle_login()
-        self.render("new-post.html", error=error, title=title, body=body, cancel_button_link=cancel_button_link, login_toggle_link=params[0], login_toggle_text=params[1])
+        page = "new-post.html"
+        if type == "edit-comment":
+            page = "edit-comment.html"
+        self.render(page, error=error, title=title, body=body, cancel_button_link=cancel_button_link, login_toggle_link=params[0], login_toggle_text=params[1])
+
+    def unknown_error(self):
+        self.redirect('/bogspot/dialog?type=unknown_error')
 
     def initialize(self, *a, **kw):
         webapp2.RequestHandler.initialize(self, *a, **kw)
@@ -351,7 +383,7 @@ class MainRedirectHandler(Handler):
 
 class NewPostHandler(Handler):
     def get(self):
-        self.render_new_post_form()
+        self.render_edit_form()
 
     def post(self):
         title = self.request.get("subject")
@@ -362,70 +394,86 @@ class NewPostHandler(Handler):
             row.put()
             self.redirect("/bogspot/" + str(row.key().id()))
         else:
-            self.render_new_post_form(error = "We need both title and a body!", title=title, body=body)
+            self.render_edit_form(error = "We need both title and a body!", title=title, body=body)
 
 class SpecificPostHandler(Handler):
     def get(self, entry_id):
         entry = Blog_db.get_by_id(int(entry_id))
         if entry:
             comments = get_comments(int(entry_id))
-            self.write('comments:')
-            self.write(comments)
+            author = User_Account_db.get_by_id(int(entry.author_id)).username
             liked = "disabled"
             if self.is_liked(entry):
                 liked = "enabled"
             parms = self.toggle_login()
-            self.render("new-blog-entry.html", entry = entry, user = self.user, like_status = liked, comments = comments, User_Accounts = User_Account_db, login_toggle_link=parms[0], login_toggle_text=parms[1])
+            self.render("new-blog-entry.html", entry = entry, author = author, user = self.user, like_status = liked, comments = comments, login_toggle_link=parms[0], login_toggle_text=parms[1])
         else:
             self.write("could not render page for entry id: " + entry_id)
     def post(self, entry_id):
-        # http://fontawesome.io/
-        # self.write(self)
         entry = Blog_db.get_by_id(int(entry_id))
-        if self.request.get("edit"):
-            if self.eval_permissions(entry.author_id):
-                entry_id_hash = make_secure_val(entry_id)
-                self.redirect('/bogspot/edit/%s' % entry_id_hash)
-        elif self.request.get("delete"):
-            if self.eval_permissions(entry.author_id):
-                entry.delete()
-                self.redirect('/bogspot/deleted')
-        elif self.request.get("like"):
-            if self.eval_permissions(entry.author_id, False):
-                # can't like your own post
-                self.redirect('/bogspot/dialog?type=like')
-            else:
-                parms = self.toggle_login()
-                if self.user:
-                    if self.is_liked(entry):
-                        # already liked, unklike
-                        entry.likes.remove(self.user.key().id())
-                        entry.put()
-                        self.redirect("/bogspot/%s" % str(entry.key().id()))
-                    else:
-                        # like
-                        entry.likes.append(self.user.key().id())
-                        entry.put()
-                        self.redirect("/bogspot/%s" % str(entry.key().id()))
+        arguments = self.request.arguments()[0].split("=")
+        if "delete-comment" in arguments:
+            comment = Comments_db.get_by_id(int(arguments[1]))
+            comment.delete()
+            self.redirect('/bogspot/dialog?type=comment_deleted')
+        elif "edit-comment" in arguments:
+            comment_id_hash = entry_id + "?comment_id=" + make_secure_val(arguments[1])
+            self.redirect('/bogspot/edit-comment/%s' % comment_id_hash)
+        else:
+            if self.request.get("edit"):
+                if self.eval_permissions(entry.author_id):
+                    entry_id_hash = make_secure_val(entry_id)
+                    self.redirect('/bogspot/edit-post/%s' % entry_id_hash)
+            elif self.request.get("delete"):
+                if self.eval_permissions(entry.author_id):
+                    entry.delete()
+                    self.redirect('/bogspot/dialog?type=post_deleted')
+            elif self.request.get("like"):
+                if self.eval_permissions(entry.author_id, False):
+                    # can't like your own post
+                    self.redirect('/bogspot/dialog?type=like')
                 else:
-                    self.redirect('/bogspot/login')
-        else: 
-            comment = self.request.get('comment')
-            if comment:
-                self.write(comment)
-                row = Comments_db(blog_post_id = entry.key().id(), user_id = self.user.key().id(), body = comment)
-                row.put()
-                self.redirect('/bogspot/dialog?type=comment_added')
+                    parms = self.toggle_login()
+                    if self.user:
+                        if self.is_liked(entry):
+                            # already liked, unklike
+                            entry.likes.remove(self.user.key().id())
+                            entry.put()
+                            self.redirect("/bogspot/%s" % str(entry.key().id()))
+                        else:
+                            # like
+                            entry.likes.append(self.user.key().id())
+                            entry.put()
+                            self.redirect("/bogspot/%s" % str(entry.key().id()))
+                    else:
+                        self.redirect('/bogspot/login')
+            elif self.request.get("edit-comment"):
+                # self.write(self.request.get("edit-comment"))
+                self.write("edit comment button pressed")
+            elif self.request.get("delete-comment"):
+                # self.write(self.request.get("delete-comment"))
+                self.write("delete comment button pressed")
+                arguments = self.request.arguments()
+                self.write(arguments)
+            else: 
+                comment = self.request.get('comment')
+                if comment:
+                    self.write(comment)
+                    row = Comments_db(blog_post_id = entry.key().id(), user_id = self.user.key().id(), body = comment)
+                    row.put()
+                    self.redirect('/bogspot/dialog?type=comment_added')
 
 
 class EditPostHandler(Handler):
     def get(self, entry_id_hash):
-        entry_id = check_secure_val(entry_id_hash)
-        if entry_id:
-            entry = Blog_db.get_by_id(int(entry_id))
+        # entry_id = check_secure_val(entry_id_hash)
+        # if entry_id:
+        #     entry = Blog_db.get_by_id(int(entry_id))
+        entry = self.get_db_from_id_hash(self, id_hash, Blog_db)
+        if entry:
             if entry.author_id == self.user.key().id():
                 params = self.toggle_login()
-                self.render_new_post_form(title = entry.title, body = entry.body, cancel_button_link = "/bogspot/%s" % entry_id)
+                self.render_edit_form(title = entry.title, body = entry.body, cancel_button_link = "/bogspot/%s" % entry_id)
             else:
                 self.write("You are not allowed to edit this post")
         else:
@@ -440,25 +488,73 @@ class EditPostHandler(Handler):
                 entry.title = title
                 entry.body = body
                 entry.put()
-                self.redirect("/bogspot/" + str(entry.key().id()))
+                self.redirect('/bogspot/dialog?type=post_edit_success')
             else:
-                self.write("Somehow you were almost able to post this without correct permisions")
+                self.redirect('/bogspot/dialog?type=unauthorized_post')
         else:
-            self.render_new_post_form(error = "We need both title and a body!", title=title, body=body, cancel_button_link = "/bogspot/%s" % entry_id)
+            self.render_edit_form(error = "We need both title and a body!", title=title, body=body, cancel_button_link = "/bogspot/%s" % entry_id)
+
+class EditCommentHandler(Handler):
+    # def not_authorized(self):
+    #     self.redirect('/bogspot/dialog?type=comment_edit_not_authorized')
+    def get(self, origin_entry_id):
+        comment = self.get_db_from_id_hash(self.request.get("comment_id"), Comments_db)
+        if comment:
+            if self.user:
+                if self.user.key().id() == comment.user_id:
+                    self.render_edit_form(type="edit-comment", body=comment.body, cancel_button_link = "/bogspot/%s" % origin_entry_id)
+                else:
+                    self.redirect('/bogspot/dialog?type=comment_edit_not_authorized')
+            else:
+                self.redirect('/bogspot/login')
+        else:
+            self.unknown_error()
+    def post(self, origin_entry_id):
+        body = self.request.get("comment")
+        comment_id = check_secure_val(self.request.get('comment_id'))
+        if body:
+            if comment_id:
+                comment = Comments_db.get_by_id(int(comment_id))
+                comment.body = body
+                comment.put()
+                self.redirect("/bogspot/dialog?type=comment_edit_success")
+            else:
+                self.redirect('/bogspot/dialog?type=comment_edit_not_authorized')
+        else:
+            self.render_edit_form(type="edit-comment", error = "You forgot to put text in the comment box, doofus!", cancel_button_link = "/bogspot/%s" % origin_entry_id)
+
+
+
+
+
 
 class DialogHandler(Handler):
+    def dialog(self, msg):
+        self.render('dialog.html', msg=msg)
     def get(self):
         type = self.request.get('type')
         if type == 'not_author':
-            self.render('dialog.html', msg="You are not authorized to modify this post!")
+            self.dialog("You are not authorized to modify this post!")
         elif type == 'like':
-            self.render('dialog.html', msg="You can't like your own post. That's just silly.")
+            self.dialog("You can't like your own post. That's just silly.")
         elif type == 'comment_added':
-            self.render('dialog.html', msg="Thanks for contributing to the discussion!")
-
-class PostDeletedHandler(Handler):
-    def get(self):
-        self.render('dialog.html', msg="Post has been deleted")
+            self.dialog("Thanks for contributing to the discussion!")
+        elif type == 'post_deleted':
+            self.dialog("Your bogspot post has been deleted")
+        elif type == 'comment_deleted':
+            self.dialog("Your comment has been deleted")
+        elif type == 'edit_not_authorized':
+            self.dialog("You are not authorized to edit this post. Sorry.")
+        elif type == 'comment_edit_not_authorized':
+            self.dialog("You are not authorized to edit this comment. Sorry.")
+        elif type == 'comment_edit_success':
+            self.dialog("Your comment has been updated.\nThat's just swell.")
+        elif type == 'post_edit_success':
+            self.dialog("Your post has been updated. You da best!")
+        elif type == 'unauthorized_post':
+            self.dialog("Somehow you were almost able to post this without correct permisions. \nAre you a hacker? If so, I'm screwed.")
+        elif type == 'unknown_error':
+            self.dialog('Something went wrong.\nError code: "OH SHIT!"')
 
 
 
@@ -472,9 +568,9 @@ app = webapp2.WSGIApplication([(r'/bogspot/signup', SignupHandler),
                                (r'/bogspot/index', MainPageHandler),
                                (r'/bogspot/newpost', NewPostHandler),
                                (r'/bogspot/(\d+)', SpecificPostHandler),
-                               (r'/bogspot/edit/(\w+)', EditPostHandler),
+                               (r'/bogspot/edit-post/(\w+)', EditPostHandler),
+                               (r'/bogspot/edit-comment/(\w+)', EditCommentHandler),
                                (r'/bogspot/dialog', DialogHandler),
-                               (r'/bogspot/deleted', PostDeletedHandler),
                                (r'/bogspot/', MainRedirectHandler),
                                (r'/bogspot', MainRedirectHandler)],
                                debug = True)

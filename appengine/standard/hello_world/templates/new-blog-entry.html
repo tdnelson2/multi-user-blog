@@ -4,38 +4,46 @@
 {% block content %}
     <br>
     <hr>
-    <div>
-        <div class="blog-title">{{entry.title}}</div>
-        <pre class="blog-body">{{entry.body}}</pre>
-    </div>
-        <br>
-        <form method="post">
-            <!-- http://fontawesome.io/cheatsheet/ -->
-            <input type="submit" name="edit" value="&#xf044;" class="as-link enabled font-awesome">
-            <input type="submit" name="delete" value="&#xf1f8;" class="as-link enabled font-awesome">
-            <input type="submit" name="like" value="&#xf164;" class="as-link {{like_status}} font-awesome">
-        </form>
-        {% if comments %}
-        {% for comment in comments %}
-        <hr>
-        <div class="comment-entry">
-            <div class="comment-author">{{ User_Accounts.get_by_id(comment.user_id).username }}</div>
-            <pre class="comment">{{ comment.body }}</pre>
-        </div>
-        {% endfor %}
-        {% endif %}
+    <i>{{author}} wrote:</i><br><br>
+    <div class="blog-title">{{entry.title}}</div>
+    <p class="blog-body">{{entry.body}}</p>
+    <br>
+    <form method="post">
+        <!-- http://fontawesome.io/cheatsheet/ -->
+        <input type="submit" name="edit" value="&#xf044;" class="as-link enabled font-awesome">
+        <input type="submit" name="delete" value="&#xf1f8;" class="as-link enabled font-awesome">
+        <input type="submit" name="like" value="&#xf164;" class="as-link {{like_status}} font-awesome">
+    </form>
+    {% if comments %}
+    {% for comment in comments %}
+    <hr>
+    <div class="comment-entry">
+        <!-- <div class="comment-author">{{ comment.username }}</div> -->
+        <i>{{comment.username}} wrote:</i>
+        <p class="comment-body">{{ comment.body }}</p>
         {% if user %}
-        <br>
-        <br>
+        {% if comment.user_id == user.key().id() %}
         <form method="post">
-            <label>
-                <textarea name="comment" placeholder="Write a comment here!" class="monospace"></textarea>
-            </label>
-            <br>
-            <div class="error">{{error}}</div>
-
-            <input type="submit" class="submit-btn">
+            <input type="submit" name="edit-comment={{comment.id}}" value="&#xf044;" class="as-link disabled font-awesome">
+            <input type="submit" name="delete-comment={{comment.id}}" value="&#xf1f8;" class="as-link disabled font-awesome">
         </form>
         {% endif %}
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% if user %}
+    <br>
+    <br>
+    <form method="post">
+        <label>
+            <textarea name="comment" placeholder="Write a comment here!" class="monospace"></textarea>
+        </label>
+        <br>
+        <div class="error">{{error}}</div>
+
+        <input type="submit" class="submit-btn">
+    </form>
+    {% endif %}
 
 {% endblock %}

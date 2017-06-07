@@ -1,0 +1,21 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+		<h2>Edit your comment</h2>
+        <form method="post">
+            <label>
+                <textarea name="comment" placeholder="Write a comment here!" class="monospace">{{body}}</textarea>
+            </label>
+            <br>
+            <div class="error">{{error}}</div>
+            {% if error %}
+            <br>
+            {% endif %}
+            <input type="submit" class="submit-btn">
+        </form>
+        <br>
+        <form action="{{cancel_button_link}}">
+            <input type="submit" value="Cancel" class="submit-btn">
+        </form>
+{% endblock %}
