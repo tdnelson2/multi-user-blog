@@ -6,9 +6,6 @@ import hmac
 from secret import SECRET
 from string import letters
 from string import digits
-# from markdown import *
-# http://pythonhosted.org/Markdown/install.html
-# https://pythonhosted.org/Markdown/reference.html
 
 import webapp2
 import jinja2
@@ -23,11 +20,6 @@ USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 PASSWORD_RE = re.compile(r"^.{3,20}$")
 EMAIL_RE = re.compile(r"^[\S]+@[\S]+.[\S]+$")
 
-# invalid_username = "<div class=\"error\"><b>That's not a valid username.</b></div>"
-# username_taken = "<div class=\"error\"><b>Username already exists</b></div>"
-# invalid_password = "<div class=\"error\"><b>That wasn't a valid password.</b></div>"
-# invalid_verify = "<div class=\"error\"><b>Your passwords didn't match.</b></div>"
-# invalid_email = "<div class=\"error\"><b>That's not a valid email.</b></div>"
 invalid_username = "<b>That's not a valid username.</b><br>"
 username_taken = "<b>Username already exists</b><br>"
 invalid_password = "<b>That wasn't a valid password.</b><br>"
@@ -68,7 +60,7 @@ def authenticate_login(username, password = None):
     hits = db.GqlQuery(query)
     if not db_query_is_empty(hits):
         entry = hits[0]
-    # This can be used by signup to check if username already exist
+    # Used by signup to check if username already exist
         if password == None:
             if entry.username == username:
                 return True
@@ -80,29 +72,6 @@ def authenticate_login(username, password = None):
                 if valid_pw(username, password, entry.password_hash):
                     return str(entry.key().id())
     return None
-    # username_match = None
-    # password_match = None
-    # user_id = None
-    # entry = None
-    # for e in hits:
-    #     username_match = e.username
-    #     password_hash = e.password_hash
-    #     entry = e
-    #     break
-
-    # This can be used by signup to check if username already exist
-    # if password == None:
-    #     if username_match == username:
-    #         return True
-    #     else:
-    #         return None
-
-    # This is used by login to authenticate
-    # else:
-    #     if username_match == username:
-    #         if valid_pw(username, password, password_hash):
-    #             return str(entry.key().id())
-    # return None
 
 def eval_signup_or_login(username, password, verify = None,
                          email = None, username_exists = False):
@@ -123,7 +92,7 @@ def eval_signup_or_login(username, password, verify = None,
         exceptions['username_msg'] = username_taken
         exceptions['username'] = username
 
-    # otherwise just check if it is a valid username
+    # if login check if it is a valid username
     elif not USER_RE.match(username):
         er = True
         exceptions['username_msg'] = invalid_username
@@ -153,7 +122,7 @@ class Blog_db(db.Model):
     title = db.StringProperty(required = True)
     body = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
-    author_id = db.IntegerProperty(required = True)
+    author_id = db.IntegerProperty()
     likes = db.ListProperty(int)
 
 
@@ -175,42 +144,62 @@ class Comments_db(db.Model):
     created = db.DateTimeProperty(auto_now_add = True)
 
 def db_query_is_empty(result):
-    try:
-        r = result[0]
+    rows = []
+    for r in result:
+        rows.append(r)
+        break
+    if len(rows) > 0:
         return False
-    except IndexError:
-        return True
+    return True
+    # try:
+    #     r = result[0]
+    #     return False
+    # except IndexError:
+    #     return True
 
 def all_posts():
-    posts = db.GqlQuery("SELECT * FROM Blog_db ORDER BY created DESC")
-    # test if anything was returned
-    if not db_query_is_empty(posts):
-        post_dicts = []
-        for post in posts:
-            author = User_Account_db.get_by_id(int(post.author_id)).username
-            if author:
-                entry = {"id": post.key().id(), "author": author, "title": post.title, "body": post.body, "likes": post.likes}
-                post_dicts.append(entry)
-        if post_dicts:
-            return post_dicts
+    if Blog_db:
+        posts = db.GqlQuery("SELECT * FROM Blog_db ORDER BY created DESC")
+        # test if anything was returned
+        if not db_query_is_empty(posts):
+            post_dicts = []
+            # create array containing all info to display post
+            for post in posts:
+                author = User_Account_db.get_by_id(int(post.author_id)).username
+                if author:
+                    entry = {"id": post.key().id(), 
+                             "author": author, 
+                             "title": post.title, 
+                             "body": post.body, 
+                             "likes": post.likes}
+                    post_dicts.append(entry)
+            if post_dicts:
+                return post_dicts
     return None
 
 def get_comments(entry_id):
-    query = "SELECT * FROM Comments_db WHERE blog_post_id=%d ORDER BY created ASC" % entry_id
-    hits = db.GqlQuery(query)
-    if db_query_is_empty(hits):
-        return None
-    else:
-        comments = []
-        for hit in hits:
-            username = User_Account_db.get_by_id(hit.user_id).username
-            if username:
-                entry = {"username": username, "user_id": hit.user_id, "body": hit.body, "id": str(hit.key().id())}
-                comments.append(entry)
-            # else:
-                # probably should delete the comment if the user no longer exists
-        if comments:
-            return comments
+    if Comments_db:
+        query = ("SELECT * FROM Comments_db "
+                 "WHERE blog_post_id=%d "
+                 "ORDER BY created ASC" % entry_id)
+        hits = db.GqlQuery(query)
+        # check if query returned empty
+        if db_query_is_empty(hits):
+            return None
+        else:
+            # build dictionary containing all pertainant info
+            comments = []
+            for hit in hits:
+                username = User_Account_db.get_by_id(hit.user_id).username
+                # if user no longer exists, the comment will not be shown
+                if username:
+                    entry = {"username": username, 
+                            "user_id": hit.user_id, 
+                            "body": hit.body, 
+                            "id": str(hit.key().id())}
+                    comments.append(entry)
+            if comments:
+                return comments
     return None
 
 
@@ -369,7 +358,8 @@ class LogoutHandler(Handler):
 
 class MainPageHandler(Handler):
     def render_front(self):
-        # entries = db.GqlQuery("select * from Blog_db order by created desc")
+        # row = Comments_db(blog_post_id = 1, user_id = 1, body = "1")
+        # row.put()
         entries = all_posts()
         parms = self.toggle_login()
         self.render("main.html", entries = entries, login_toggle_link=parms[0], login_toggle_text=parms[1], user = self.user)
@@ -458,7 +448,6 @@ class SpecificPostHandler(Handler):
             else: 
                 comment = self.request.get('comment')
                 if comment:
-                    self.write(comment)
                     row = Comments_db(blog_post_id = entry.key().id(), user_id = self.user.key().id(), body = comment)
                     row.put()
                     self.redirect('/bogspot/dialog?type=comment_added')
@@ -469,11 +458,11 @@ class EditPostHandler(Handler):
         # entry_id = check_secure_val(entry_id_hash)
         # if entry_id:
         #     entry = Blog_db.get_by_id(int(entry_id))
-        entry = self.get_db_from_id_hash(self, id_hash, Blog_db)
+        entry = self.get_db_from_id_hash(entry_id_hash, Blog_db)
         if entry:
             if entry.author_id == self.user.key().id():
                 params = self.toggle_login()
-                self.render_edit_form(title = entry.title, body = entry.body, cancel_button_link = "/bogspot/%s" % entry_id)
+                self.render_edit_form(title = entry.title, body = entry.body, cancel_button_link = "/bogspot/%s" % str(entry.key().id()))
             else:
                 self.write("You are not allowed to edit this post")
         else:
