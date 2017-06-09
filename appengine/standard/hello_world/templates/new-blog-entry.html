@@ -13,12 +13,25 @@
         <input type="submit" name="edit" value="&#xf044;" class="as-link enabled font-awesome">
         <input type="submit" name="delete" value="&#xf1f8;" class="as-link enabled font-awesome">
         <input type="submit" name="like" value="&#xf164;" class="as-link {{like_status}} font-awesome">
+        <!-- <p>  {{likes}} people think this is rad</p> -->
+        {% if likes == 0 %}
+        <i>  No likes</i>
+        {% elif likes == 1 and like_status == "disabled"%}
+        <i>  1 person thinks this is rad</i>
+        {% elif likes == 1 and like_status == "enabled"%}
+        <i>  You think this is rad</i>
+        {% elif likes == 2 and like_status == "enabled"%}
+        <i>  You and 1 other person think this is rad</i>
+        {% elif likes > 2 and like_status == "enabled"%}
+        <i>  You and {{likes - 1}} other people think this is rad</i>
+        {% else %}
+        <i>  {{likes}} people think this is rad</i>
+        {% endif %}
     </form>
     {% if comments %}
     {% for comment in comments %}
     <hr>
     <div class="comment-entry">
-        <!-- <div class="comment-author">{{ comment.username }}</div> -->
         <i>{{comment.username}} wrote:</i>
         <p class="comment-body">{{ comment.body }}</p>
         {% if user %}
@@ -40,9 +53,12 @@
             <textarea name="comment" placeholder="Write a comment here!" class="monospace"></textarea>
         </label>
         <br>
-        <div class="error">{{error}}</div>
+        {% if error %}
+        <div class="error"><b>{{error}}</b></div>
+        <br>
+        {% endif %}
 
-        <input type="submit" class="submit-btn">
+        <input type="submit" value="Post Comment" class="submit-btn">
     </form>
     {% endif %}
 

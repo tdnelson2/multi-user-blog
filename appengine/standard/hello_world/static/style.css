@@ -71,6 +71,11 @@ hr {
     margin-top: 20px;
 }
 
+.author {
+    font-weight: 100;
+    font-size: 12pt;
+}
+
 .comment-entry + .comment-entry {
     margin-top: 20px;
 }

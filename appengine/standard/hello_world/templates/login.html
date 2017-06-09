@@ -4,7 +4,6 @@
 	<div class="center">
 		<h1>Login</h1>
 		<form method="post">
-			<!-- <label for="username">Username</label> -->
 			<input type="text" name="username" value="{{username}}" placeholder="Username">
 			<br>
 			{% if username_msg %}
@@ -13,7 +12,6 @@
 			<br>
 			{% endif %}
 
-			<!-- <label for="password">Password</label> -->
 			<input type="password" name="password" placeholder="Password">
 			<br>
 			{% if password_msg %}
@@ -22,12 +20,12 @@
 			<br>
 			{% endif %}
 
-			{% if login_msg != "" %}
+			{% if login_msg %}
 			{{login_msg | safe}}
 			<br>
 			{% endif %}
 
-			<input type="submit" class="submit-btn">
+			<input type="submit" value="Login" class="submit-btn">
 		</form>
 	</div>
 {% endblock %}

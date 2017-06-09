@@ -8,8 +8,8 @@
                 <textarea name="comment" placeholder="Write a comment here!" class="monospace">{{body}}</textarea>
             </label>
             <br>
-            <div class="error">{{error}}</div>
             {% if error %}
+            <div class="error"><b>{{error}}</b></div>
             <br>
             {% endif %}
             <input type="submit" class="submit-btn">
