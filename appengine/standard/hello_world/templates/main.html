@@ -1,9 +1,7 @@
 
 {% extends "base.html" %}
-
 {% block content %}
         <h2><i>recent posts</i></h2>
-
         {% if entries %}
         <hr>
         {% for entry in entries %}
@@ -11,14 +9,15 @@
             <div class="blog-title">
             <a href="/bogspot/{{entry.id}}">{{entry.title}}</a><i class="author"> by {{entry.author}}</i>
             </div>
-            <p class="blog-body">{{entry.body}}</p>
+            <p class="blog-body">{{entry.body | safe}}</p>
+            <hr class="short-line">
         </div>
         {% endfor %}
         {% else %}
         <h2 class="center">No posts yet!</h2>
+        <hr class="short-line">
         {% endif %}
-        <hr>
-
+        <br>
         {% if user %}
         <form action="/bogspot/newpost">
 			<input type="submit" value="New Post" class="submit-btn">
@@ -28,6 +27,4 @@
 			<input type="submit" value="New Post" class="submit-btn">
 		</form>
 		{% endif %}
-
-
 {% endblock %}

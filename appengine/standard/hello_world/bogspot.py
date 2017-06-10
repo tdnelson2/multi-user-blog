@@ -16,6 +16,8 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
                                autoescape=True)
 
+
+# regular expressions for validating login/signup
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 PASSWORD_RE = re.compile(r"^.{3,20}$")
 EMAIL_RE = re.compile(r"^[\S]+@[\S]+.[\S]+$")
@@ -26,8 +28,7 @@ invalid_password = "<b>That wasn't a valid password.</b><br>"
 invalid_verify = "<b>Your passwords didn't match.</b><br>"
 invalid_email = "<b>That's not a valid email.</b><br>"
 
-# User security
-
+### User security
 
 def hash_str(s):
     return hmac.new(SECRET, s).hexdigest()
@@ -61,8 +62,6 @@ def valid_pw(name, pw, h):
     return input_hash == existing_hash
 
 # User signup/login
-
-
 def authenticate_login(username, password=None):
     query = "SELECT * FROM User_Account_db WHERE username='%s'" % username
     hits = db.GqlQuery(query)
@@ -122,7 +121,13 @@ def eval_signup_or_login(username, password, verify=None,
         return None
     return exceptions
 
-# Databases
+def render_line_breaks(text):
+    return re.sub('[\n\r]', '<br>', text)
+
+def restore_line_breaks(text):
+    return re.sub('<br>', '\n', text)
+
+### Databases
 class Blog_db(db.Model):
     title = db.StringProperty(required=True)
     body = db.TextProperty(required=True)
@@ -353,7 +358,7 @@ class SignupHandler(Handler):
 
 class LoginHandler(Handler):
 
-    # put link in the body's header. 
+    # put link in the body's header.
     # a link is added automatically by self.render() if you don't overrided it
 
     def append_signup_parms(self, params):
@@ -417,12 +422,9 @@ class LogoutHandler(Handler):
 
 class MainPageHandler(Handler):
 
-    def render_front(self):
+    def get(self):
         entries = all_posts(self.user)
         self.render("main.html", entries=entries, user=self.user)
-
-    def get(self):
-        self.render_front()
 
 
 class MainRedirectHandler(Handler):
@@ -440,7 +442,7 @@ class NewPostHandler(Handler):
 
     def post(self):
         title = self.request.get("subject")
-        body = self.request.get("content")
+        body = render_line_breaks(self.request.get("content"))
 
         if title and body:
             row = Blog_db(title=title,
@@ -559,8 +561,9 @@ class EditPostHandler(Handler):
 
             # If permissions are correct allow editing
             if entry.author_id == self.user.key().id():
-                self.render_edit_form(title=entry.title, body=entry.body,
-                                      cancel_button_link="/bogspot/%s"
+                self.render_edit_form(title = entry.title,
+                                      body = restore_line_breaks(entry.body),
+                                      cancel_button_link = "/bogspot/%s"
                                       % str(entry.key().id()))
             else:
                 self.redirect('/bogspot/dialog?type=unauthorized_post')
@@ -577,7 +580,7 @@ class EditPostHandler(Handler):
             if entry_id:
                 entry = Blog_db.get_by_id(int(entry_id))
                 entry.title = title
-                entry.body = body
+                entry.body = render_line_breaks(body)
                 entry.put()
                 self.redirect('/bogspot/dialog?type=post_edit_success')
             else:
@@ -616,7 +619,7 @@ class CommentHandler(Handler):
         if body:
             if comment_id:
                 comment = Comments_db.get_by_id(int(comment_id))
-                comment.body = body
+                comment.body = render_line_breaks(body)
                 comment.put()
                 self.redirect("/bogspot/dialog?type=comment_edit_success")
             else:

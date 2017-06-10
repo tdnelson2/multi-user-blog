@@ -6,8 +6,9 @@
     <hr>
     <i>{{author}} wrote:</i><br><br>
     <div class="blog-title">{{entry.title}}</div>
-    <p class="blog-body">{{entry.body}}</p>
+    <p class="blog-body">{{entry.body | safe}}</p>
     <br>
+    <hr class="short-line">
     <form method="post">
         <!-- http://fontawesome.io/cheatsheet/ -->
         <input type="submit" name="edit" value="&#xf044;" class="as-link enabled font-awesome">
