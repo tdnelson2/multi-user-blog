@@ -56,24 +56,15 @@ a {
     color: #888;
 }
 
-label {
+/*label {
     font-size: 15pt;
     display: inline-block;
     width: 140px;
     text-align: right;
-}
+}*/
 
 hr {
     margin: 20px auto;
-}
-
-/*.blog-entry + .blog-entry {
-    margin-top: 20px;
-}*/
-
-.author {
-    font-weight: 100;
-    font-size: 12pt;
 }
 
 .comment-entry + .comment-entry {
@@ -89,9 +80,26 @@ hr {
     font-size: 10pt;
 }
 
+.blog-entry {
+    position: relative;
+}
+
 .blog-title {
     font-weight: bold;
     font-size: 20px;
+}
+
+.slim-txt {
+    font-weight: 100;
+    font-size: 12pt;
+}
+
+.blog-date {
+    display: inline-block;/*
+    text-align: right;*/
+    /*width: 100%;*/
+    position: absolute;
+    right: 0px;
 }
 
 .blog-body {
@@ -163,8 +171,10 @@ input[type=text], input[type=password], textarea {
     width: 50%;
     margin-right: 0px;
     display: inline-block;
-/*  height: 1px;
-  background-color: #888;*/
+}
+
+.small-br {
+    margin-top: 5px;
 }
 
 .enabled {

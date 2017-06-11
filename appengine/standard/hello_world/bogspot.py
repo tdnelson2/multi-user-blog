@@ -121,12 +121,6 @@ def eval_signup_or_login(username, password, verify=None,
         return None
     return exceptions
 
-def render_line_breaks(text):
-    return re.sub('[\n\r]', '<br>', text)
-
-def restore_line_breaks(text):
-    return re.sub('<br>', '\n', text)
-
 ### Databases
 class Blog_db(db.Model):
     title = db.StringProperty(required=True)
@@ -163,28 +157,73 @@ def db_query_is_empty(result):
         return False
     return True
 
+def is_liked(entry, user):
+    if user:
+        likes = entry.likes
+        user_id = user.key().id()
+        if user_id in likes:
+            return True
+    return False
+
+def render_str(template, **params):
+    t = jinja_env.get_template(template)
+    return t.render(params)
+
+# this class is necessary since GqlQuery won't let you count items
+class Blog_Post():
+
+    """Data structure for use when rendering blog posts"""
+
+    def __init__(self, post_id, author, title, body, created, likes, u_liked):
+
+        self.post_id = post_id
+        self.author = author
+        self.title = title
+        self.body = body
+        self.created = created
+        self.likes = likes
+        self.u_liked = u_liked
+
+    def render(self):
+        self.like_c = len(likes)
+
+        # escape all html in the body then replace line breaks with <br>
+        body_html_esc = render_str("body.html", body=self.body)
+        self.body_br = render_line_breaks(body_html_esc)
+        return render_str("post.html", entry = self)
+
+def render_line_breaks(text):
+    return re.sub('\n', '<br>', text)
+
+def build_post(entry, user):
+    author_ac = User_Account_db.get_by_id(int(entry.author_id))
+    if author_ac:
+        author = author_ac.username
+
+        # when you see posts written by yourself, author will display as "You"
+        if user and author == user.username:
+            author = "You"
+        return Blog_Post(entry.key().id(),
+                         author, entry.title, entry.body,
+                         entry.created.strftime("%b %d, %Y"), entry.likes,
+                         is_liked(entry, user))
+    return None
+
 
 def all_posts(user):
     posts = db.GqlQuery("SELECT * FROM Blog_db ORDER BY created DESC")
 
     # test if anything was returned
     if not db_query_is_empty(posts):
-        post_dicts = []
+        post_ary = []
 
-        # create array containing all info to display post
+        # create array Blog_Post objects containing all info to display post
         for post in posts:
-            author = User_Account_db.get_by_id(int(post.author_id)).username
-            if author:
-                if user and author == user.username:
-                    author = "You"
-                entry = {"id": post.key().id(),
-                         "author": author,
-                         "title": post.title,
-                         "body": post.body,
-                         "likes": post.likes}
-                post_dicts.append(entry)
-        if post_dicts:
-            return post_dicts
+            post_obj = build_post(post, user)
+            if post_obj:
+                post_ary.append(post_obj)
+        if post_ary:
+            return post_ary
     return None
 
 
@@ -221,13 +260,9 @@ class Handler(webapp2.RequestHandler):
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
 
-    def render_str(self, template, **params):
-        t = jinja_env.get_template(template)
-        return t.render(params)
-
     def render(self, template, **kw):
 
-        # add the login/logout like to the body's header
+        # add the login/logout to the body's header
         # if it has not already been specified
 
         if not "login_toggle_link" in kw and not "login_toggle_text" in kw:
@@ -237,7 +272,7 @@ class Handler(webapp2.RequestHandler):
             else:
                 kw["login_toggle_link"] = "/bogspot/login"
                 kw["login_toggle_text"] = "Sign In"
-        self.write(self.render_str(template, **kw))
+        self.write(render_str(template, **kw))
 
     def get_user_account(self, cookie_name):
         user_cookie_str = self.request.cookies.get(cookie_name)
@@ -424,7 +459,10 @@ class MainPageHandler(Handler):
 
     def get(self):
         entries = all_posts(self.user)
-        self.render("main.html", entries=entries, user=self.user)
+        link = '/bogspot/login'
+        if self.user:
+            link = '/bogspot/newpost'
+        self.render("main.html", entries=entries, new_post_button_link = link)
 
 
 class MainRedirectHandler(Handler):
@@ -442,7 +480,7 @@ class NewPostHandler(Handler):
 
     def post(self):
         title = self.request.get("subject")
-        body = render_line_breaks(self.request.get("content"))
+        body = self.request.get("content")
 
         if title and body:
             row = Blog_db(title=title,
@@ -461,24 +499,23 @@ class SpecificPostHandler(Handler):
     def get(self, entry_id):
         entry = Blog_db.get_by_id(int(entry_id))
         if entry:
+            post = build_post(entry, self.user)
+            if post:
+                # if no error, return empty string
+                error = self.request.get("error") or ""
+                comments = get_comments(int(entry_id))
 
-            # if no error, return empty string
-            error = self.request.get("error") or ""
-            comments = get_comments(int(entry_id))
-            author = User_Account_db.get_by_id(int(entry.author_id)).username
-
-            # when you see posts written by you, author will display as "You"
-            if self.user and author == self.user.username:
-                author = "You"
-
-            # disabled = grayed out, enabled = normal
-            liked = "disabled"
-            if self.is_liked(entry):
-                liked = "enabled"
-            self.render("new-blog-entry.html", entry=entry, author=author,
-                        user=self.user, like_status=liked,
-                        comments=comments, error=re.sub('_', ' ', error),
-                        likes = len(entry.likes))
+                self.render("specific-blog-entry.html", entry=entry,
+                            user=self.user, like_status=like_state,
+                            comments=comments,
+                            error=re.sub('_', ' ', error),
+                            likes=len(entry.likes))
+                # self.render("specific-blog-entry.html", entry=entry,
+                #             author=author, user=self.user, like_status=like_state,
+                #             comments=comments, error=re.sub('_', ' ', error),
+                #             likes=len(entry.likes))
+            else:
+                self.write("could not render page for entry id: " + entry_id)
         else:
             self.write("could not render page for entry id: " + entry_id)
 
@@ -562,7 +599,7 @@ class EditPostHandler(Handler):
             # If permissions are correct allow editing
             if entry.author_id == self.user.key().id():
                 self.render_edit_form(title = entry.title,
-                                      body = restore_line_breaks(entry.body),
+                                      body = entry.body,
                                       cancel_button_link = "/bogspot/%s"
                                       % str(entry.key().id()))
             else:

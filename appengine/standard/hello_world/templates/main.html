@@ -2,29 +2,25 @@
 {% extends "base.html" %}
 {% block content %}
         <h2><i>recent posts</i></h2>
-        {% if entries %}
         <hr>
+        <!-- render entries if exist -->
+        {% if entries %}
         {% for entry in entries %}
-        <div class="blog-entry">
-            <div class="blog-title">
-            <a href="/bogspot/{{entry.id}}">{{entry.title}}</a><i class="author"> by {{entry.author}}</i>
-            </div>
-            <p class="blog-body">{{entry.body | safe}}</p>
-            <hr class="short-line">
-        </div>
+        {{entry.render() | safe}}
+        <!-- if this is not the last entry, use normal horizontal ruler -->
+        {% if entries[-1] == entry %}
+        <hr>
+        {% else %}
+        <hr class="short-line">
+        {% endif %}
         {% endfor %}
         {% else %}
         <h2 class="center">No posts yet!</h2>
-        <hr class="short-line">
+        <hr>
         {% endif %}
         <br>
-        {% if user %}
-        <form action="/bogspot/newpost">
+        <!-- if user is logged in, link to newpost page otherwise link to login -->
+        <form action="{{new_post_button_link}}">
 			<input type="submit" value="New Post" class="submit-btn">
 		</form>
-        {% else %}
-        <form action="/bogspot/login">
-			<input type="submit" value="New Post" class="submit-btn">
-		</form>
-		{% endif %}
 {% endblock %}
