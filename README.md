@@ -15,3 +15,6 @@ The purpose of this project is to demonstrate how you can used Google App Engine
 * Login generates a secure cookie uniquely identifying the user
 * Passwords are hashed and salted for added security
 * Static links render dynamically and display contextual information
+## Future Improvements
+* Return user to origin after they get bounced to the sign in page
+* Return user to orgin after they like/comment/edit/delete
