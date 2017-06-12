@@ -8,8 +8,7 @@ The purpose of this project is to demonstrate how you can used Google App Engine
 ## Deploy
 * Setup a Google Cloud account and [create a new project](https://console.cloud.google.com/start)
 * Click on the `Select a project` drop down and `Create Project` plus sign `+` and name it 'hello-world'
-* Once you've named it and created it, wait 30 seconds or so then go back to the `Select a project` drop down and click on the project
-* Copy the id found in `Project info`
+* Wait 30 seconds or so
 * Run `gcloud app deploy`
 * Go to the url that gets provided after you run the aforementioned command
 ## Features
