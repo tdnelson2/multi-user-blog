@@ -1,0 +1,49 @@
+vars
+comments = Comments_db(entry)
+User_Accounts = User_Account_db
+
+css cls
+comment-entry
+comment-author
+comment
+
+query code
+
+    query = "SELECT * FROM Comments_db WHERE blog_post_id=%d" % entry_id
+    hits = db.GqlQuery(query)
+
+
+            {% if not comments == None %}
+        {% for comment in comments %}
+        <div class="comment-entry">
+            {% author_account = User_Accounts.get_by_id(comment.key().id()) %}
+            <div class="comment-author">{{author_account.username}}</div>
+            <pre class="comment">{{comment.body}}</pre>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% if user %}
+        <br>
+        <br>
+        <form method="post">
+            <label>
+                <textarea name="comment" placeholder="Write a comment here!" class="monospace"></textarea>
+            </label>
+            <br>
+            <div class="error">{{error}}</div>
+
+            <input type="submit" class="submit-btn">
+        </form>
+        {% endif %}
+
+
+
+
+        ###############
+
+
+    blog_post_id = db.IntegerProperty(required = True)
+    user_id = db.IntegerProperty(required = True)
+    body = db.TextProperty(required = True)
+
+    4785074604081152

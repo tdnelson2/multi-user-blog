@@ -1,0 +1,197 @@
+
+.container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.header-shadding {
+    background-color: #ddd;
+    margin: 0;
+}
+
+* {
+    color: #888;
+}
+
+@font-face {
+    font-family: FontAwesome;
+    src: url(fontawesome-webfont.ttf) format("truetype");
+}
+
+.font-awesome {
+    font-family: FontAwesome, Verdana, Tahoma;
+}
+
+body {
+    font-family: sans-serif;
+    width: 800px;
+    margin: 0 auto;
+    padding: 10px;
+}
+
+.bogspot-header {
+    width: 7%;
+    margin-top: 5px;
+    margin-left: 12px;
+    margin-bottom: 5px;
+    display: block;
+    left: 0;
+}
+
+.toggle-login {
+    text-align: right;
+    margin-top: 15px;
+    margin-bottom: 0;
+    margin-right: 0px;
+    display: inline-block;
+    width: 89%;
+}
+
+.login-link:hover {
+    background-color: #ffffff;
+}
+
+a {
+    text-decoration: none;
+    color: #888;
+}
+
+/*label {
+    font-size: 15pt;
+    display: inline-block;
+    width: 140px;
+    text-align: right;
+}*/
+
+hr {
+    margin: 20px auto;
+}
+
+.comment-entry + .comment-entry {
+    margin-top: 20px;
+}
+
+.comment-author {
+    font-size: 12pt;
+    color: #2a2a2a;
+}
+
+.comment-body {
+    margin-top: 4px;
+    font-size: 10pt;
+}
+
+.blog-entry {
+    position: relative;
+}
+
+.blog-title {
+    font-weight: bold;
+    font-size: 20px;
+}
+
+.slim-txt {
+    font-weight: 100;
+    font-size: 12pt;
+}
+
+.blog-date {
+    display: inline-block;/*
+    text-align: right;*/
+    /*width: 100%;*/
+    position: absolute;
+    right: 0px;
+}
+
+.blog-body {
+    margin: 0;
+    font-size: 17px;
+}
+
+b {
+    margin-top: 2px;
+    font-size: 14px;
+    color: red;
+}
+
+.center {
+    text-align: center;
+}
+
+.monospace {
+    font-size: 17px;
+    font-family: monospace;
+}
+
+input[type=text], input[type=password], textarea {
+    width: 200px;
+    padding:5px;
+    border:2px solid #ccc;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+
+.submit-btn {
+    -webkit-appearance: button;
+    -moz-appearance: button;
+    appearance: button;
+    text-decoration: none;
+    padding:5px 15px;
+    background:#ccc;
+    border:0 none;
+    cursor:pointer;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    font-size: 18px;
+    color: #888;
+}
+
+.as-link {
+    background: none;
+    color: #888;
+    border: none;
+    padding:0;
+    cursor: pointer;
+    font-size: 18px;
+    padding:0px 5px;
+}
+
+.enabled:hover {
+    color: #dcdcdc;
+}
+
+.disabled:hover {
+    color: #888;
+}
+
+.disabled {
+    color: #dcdcdc;
+}
+
+.short-line {
+    width: 50%;
+    margin-right: 0px;
+    display: inline-block;
+}
+
+.small-br {
+    margin-top: 5px;
+}
+
+.med-br {
+    margin-top: 10px;
+}
+
+.enabled {
+    color: #888;
+}
+
+textarea {
+    width: 400px;
+    height: 200px;
+}
+
+hr {
+    margin: 20px auto;
+}
+
