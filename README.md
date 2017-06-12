@@ -18,3 +18,4 @@ The purpose of this project is to demonstrate how you can used Google App Engine
 ## Future Improvements
 * Return user to origin after they get bounced to the sign in page
 * Return user to orgin after they like/comment/edit/delete
+* Support markdown
