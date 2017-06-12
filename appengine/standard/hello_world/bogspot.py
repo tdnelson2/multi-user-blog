@@ -169,6 +169,7 @@ def render_str(template, **params):
     t = jinja_env.get_template(template)
     return t.render(params)
 
+
 # this class is necessary since GqlQuery won't let you count items
 class Blog_Post():
 
@@ -185,15 +186,32 @@ class Blog_Post():
         self.u_liked = u_liked
 
     def render(self):
-        self.like_c = len(likes)
+        self.like_c = len(self.likes)
+        self.like_msg = mk_like_msg(self.like_c, self.u_liked)
+        # self.like_state = "disabled"
+        self.like_state = "enabled" if self.u_liked else "disabled"
 
         # escape all html in the body then replace line breaks with <br>
-        body_html_esc = render_str("body.html", body=self.body)
+        body_html_esc = render_str("make-safe.html", text=self.body)
         self.body_br = render_line_breaks(body_html_esc)
         return render_str("post.html", entry = self)
 
 def render_line_breaks(text):
     return re.sub('\n', '<br>', text)
+
+def mk_like_msg(like_c, u_liked):
+    if like_c == 0:
+        return "No likes"
+    elif like_c == 1 and u_liked == False:
+        return "1 person thinks this is rad"
+    elif like_c == 1 and u_liked == True:
+        return "You think this is rad"
+    elif like_c == 2 and u_liked == True:
+        return "You and 1 other person think this is rad"
+    elif like_c > 2 and u_liked == True:
+        return "You and %s other people think this is rad" % str(like_c - 1)
+    else:
+        return "%s people think this is rad" % str(like_c)
 
 def build_post(entry, user):
     author_ac = User_Account_db.get_by_id(int(entry.author_id))
@@ -217,7 +235,7 @@ def all_posts(user):
     if not db_query_is_empty(posts):
         post_ary = []
 
-        # create array Blog_Post objects containing all info to display post
+        # create array of Blog_Post objects containing info to display post
         for post in posts:
             post_obj = build_post(post, user)
             if post_obj:
@@ -464,6 +482,102 @@ class MainPageHandler(Handler):
             link = '/bogspot/newpost'
         self.render("main.html", entries=entries, new_post_button_link = link)
 
+    def post(self):
+        likes_and_comments_mgmt(self, "/bogspot/index")
+
+def likes_and_comments_mgmt(page, page_url):
+
+    arguments = page.request.arguments()[0].split("=")
+
+    # Argument format:
+    # COMMENT:
+    # "comment=delete=1234567890=987654321"
+    #    ^          ^         ^         ^
+    #  type | button press | post id | comment id
+
+    # BLOG POST
+    # "post=delete=1234565445457890"
+    #   ^        ^             ^
+    #  type | button press | post id
+
+    # split at "=" to get our arugments
+
+    # test for arguments
+    if len(arguments) == 4 and "comment" == arguments[0]:
+        try:
+            post_id = int(arguments[2])
+            comment_id = int(arguments[3])
+        except ValueError:
+            page.redirect('/bogspot/dialog?type=unknown_error'
+                          '&post_id=%s&comment_id=%s'
+                           % (arguments[2], arguments[3]))
+            return None
+        if "delete" == arguments[1]:
+            comment = Comments_db.get_by_id(comment_id)
+            comment.delete()
+            page.redirect('/bogspot/dialog?type=comment_deleted')
+        elif "edit" == arguments[1]:
+            comment_id_hash = (post_id + "?comment_id=" +
+                               make_secure_val(str(comment_id)))
+            page.redirect('/bogspot/comment/%s' % comment_id_hash)
+        elif "new" == arguments[1]:
+
+            comment = self.request.get("comment-text")
+
+            # save comment if it contains text
+            if comment:
+                row = Comments_db(blog_post_id=post_id,
+                                  user_id=page.user.key().id(),
+                                  body=comment)
+                row.put()
+                page.redirect('/bogspot/dialog?type=comment_added')
+            else:
+                page.redirect('/bogspot/%s?error=Comment_contains_no_text'
+                              % str(post_id))
+    elif len(arguments) == 3 and "post" == arguments[0]:
+        try:
+            post_id = int(arguments[2])
+        except ValueError:
+            page.redirect('/bogspot/dialog?type=unknown_error&post_id=%s'
+                           % arguments[2])
+            return None
+        entry = Blog_db.get_by_id(post_id)
+        if "edit" == arguments[1]:
+
+            # eval_permissions will kick you to login if returns false
+            if page.eval_permissions(entry.author_id):
+                entry_id_hash = make_secure_val(str(post_id))
+                page.redirect('/bogspot/edit-post/%s' % entry_id_hash)
+        elif "delete" == arguments[1]:
+            if page.eval_permissions(entry.author_id):
+                entry.delete()
+                page.redirect('/bogspot/dialog?type=post_deleted')
+        elif "like" == arguments[1]:
+
+            # pass False to override eval_permissions' redirect
+            if page.eval_permissions(entry.author_id, False):
+
+                # can't like your own post
+                page.redirect('/bogspot/dialog?type=like')
+            else:
+                if page.user:
+                    if page.is_liked(entry):
+
+                        # already liked, unklike
+                        entry.likes.remove(page.user.key().id())
+                        entry.put()
+                        page.redirect(page_url)
+                    else:
+
+                        # like
+                        entry.likes.append(page.user.key().id())
+                        entry.put()
+                        page.redirect(page_url)
+                else:
+                    page.redirect('/bogspot/login')
+    else:
+        page.redirect('/bogspot/dialog?type=unknown_error')
+
 
 class MainRedirectHandler(Handler):
 
@@ -505,89 +619,17 @@ class SpecificPostHandler(Handler):
                 error = self.request.get("error") or ""
                 comments = get_comments(int(entry_id))
 
-                self.render("specific-blog-entry.html", entry=entry,
-                            user=self.user, like_status=like_state,
-                            comments=comments,
-                            error=re.sub('_', ' ', error),
-                            likes=len(entry.likes))
-                # self.render("specific-blog-entry.html", entry=entry,
-                #             author=author, user=self.user, like_status=like_state,
-                #             comments=comments, error=re.sub('_', ' ', error),
-                #             likes=len(entry.likes))
+                self.render("specific-blog-entry.html", post=post,
+                            user=self.user, comments=comments,
+                            error=re.sub('_', ' ', error))
             else:
                 self.write("could not render page for entry id: " + entry_id)
         else:
             self.write("could not render page for entry id: " + entry_id)
 
     def post(self, entry_id):
-        entry = Blog_db.get_by_id(int(entry_id))
+        likes_and_comments_mgmt(self, "/bogspot/%s" % str(entry_id))
 
-        # if form contains value like "delete-comment=1234567890",
-        # use the number to find the comment in the db
-
-        # split at "=" to get value and id
-        arguments = self.request.arguments()[0].split("=")
-
-        # test for arguments
-        if "delete-comment" in arguments:
-            comment = Comments_db.get_by_id(int(arguments[1]))
-            comment.delete()
-            self.redirect('/bogspot/dialog?type=comment_deleted')
-        elif "edit-comment" in arguments:
-            comment_id_hash = (entry_id + "?comment_id=" +
-                               make_secure_val(arguments[1]))
-            self.redirect('/bogspot/comment/%s' % comment_id_hash)
-
-        # check for other form button presses
-        else:
-            if self.request.get("edit"):
-
-                # eval_permissions will kick you to login if returns false
-                if self.eval_permissions(entry.author_id):
-                    entry_id_hash = make_secure_val(entry_id)
-                    self.redirect('/bogspot/edit-post/%s' % entry_id_hash)
-            elif self.request.get("delete"):
-                if self.eval_permissions(entry.author_id):
-                    entry.delete()
-                    self.redirect('/bogspot/dialog?type=post_deleted')
-            elif self.request.get("like"):
-
-                # pass False to override eval_permissions' redirect
-                if self.eval_permissions(entry.author_id, False):
-
-                    # can't like your own post
-                    self.redirect('/bogspot/dialog?type=like')
-                else:
-                    if self.user:
-                        if self.is_liked(entry):
-
-                            # already liked, unklike
-                            entry.likes.remove(self.user.key().id())
-                            entry.put()
-                            self.redirect("/bogspot/%s" %
-                                          str(entry.key().id()))
-                        else:
-
-                            # like
-                            entry.likes.append(self.user.key().id())
-                            entry.put()
-                            self.redirect("/bogspot/%s" %
-                                          str(entry.key().id()))
-                    else:
-                        self.redirect('/bogspot/login')
-            else:
-                comment = self.request.get('comment')
-
-                # save comment if it contains text
-                if comment:
-                    row = Comments_db(blog_post_id=entry.key().id(),
-                                      user_id=self.user.key().id(),
-                                      body=comment)
-                    row.put()
-                    self.redirect('/bogspot/dialog?type=comment_added')
-                else:
-                    self.redirect('/bogspot/%s?error=Comment_contains_no_text'
-                                  % entry_id)
 
 
 class EditPostHandler(Handler):

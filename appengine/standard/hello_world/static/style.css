@@ -177,6 +177,10 @@ input[type=text], input[type=password], textarea {
     margin-top: 5px;
 }
 
+.med-br {
+    margin-top: 10px;
+}
+
 .enabled {
     color: #888;
 }

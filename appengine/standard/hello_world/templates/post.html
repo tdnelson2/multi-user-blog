@@ -1,28 +1,18 @@
         <div class="blog-entry">
             <div class="blog-title">
-            <a href="/bogspot/{{entry.id}}">{{entry.title}}</a><i class="slim-txt"> by {{entry.author}}</i>
+            <a href="/bogspot/{{entry.post_id}}">{{entry.title}}</a>
+            <i class="slim-txt"> by {{entry.author}}</i>
             <i class="blog-date slim-txt">{{entry.created}}</i>
             </div>
             <div class="small-br"></div>
             <p class="blog-body">{{entry.body_br | safe}}</p>
         </div>
+        <div class="med-br"></div>
         <form method="post">
             <!-- http://fontawesome.io/cheatsheet/ -->
-            <input type="submit" name="edit" value="&#xf044;" class="as-link enabled font-awesome">
-            <input type="submit" name="delete" value="&#xf1f8;" class="as-link enabled font-awesome">
-            <input type="submit" name="like" value="&#xf164;" class="as-link {{like_status}} font-awesome">
+            <input type="submit" name="post=edit={{entry.post_id}}" value="&#xf044;" class="as-link enabled font-awesome">
+            <input type="submit" name="post=delete={{entry.post_id}}" value="&#xf1f8;" class="as-link enabled font-awesome">
+            <input type="submit" name="post=like={{entry.post_id}}" value="&#xf164;" class="as-link {{entry.like_state}} font-awesome">
             <!-- render a specific message based upon number of likes -->
-            {% if entry.like_c == 0 %}
-            <i>  No likes</i>
-            {% elif entry.like_c == 1 and entry.u_liked == False %}
-            <i>  1 person thinks this is rad</i>
-            {% elif entry.like_c == 1 and entry.u_liked == True %}
-            <i>  You think this is rad</i>
-            {% elif entry.like_c == 2 and entry.u_liked == True %}
-            <i>  You and 1 other person think this is rad</i>
-            {% elif entry.like_c > 2 and entry.u_liked == True %}
-            <i>  You and {{entry.like_c - 1}} other people think this is rad</i>
-            {% else %}
-            <i>  {{entry.like_c}} people think this is rad</i>
-            {% endif %}
+            <i>  {{entry.like_msg}}</i>
         </form>

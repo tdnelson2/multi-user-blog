@@ -4,7 +4,7 @@
 {% block content %}
     <br>
     <hr>
-    {{entry.render()}}
+    {{post.render() | safe}}
     {% if comments %}
     {% for comment in comments %}
     <hr>
@@ -14,8 +14,8 @@
         {% if user %}
         {% if comment.user_id == user.key().id() %}
         <form method="post">
-            <input type="submit" name="edit-comment={{comment.id}}" value="&#xf044;" class="as-link disabled font-awesome">
-            <input type="submit" name="delete-comment={{comment.id}}" value="&#xf1f8;" class="as-link disabled font-awesome">
+            <input type="submit" name="comment=edit={{post.post_id}}={{comment.id}}" value="&#xf044;" class="as-link disabled font-awesome">
+            <input type="submit" name="comment=delete={{post.post_id}}={{comment.id}}" value="&#xf1f8;" class="as-link disabled font-awesome">
         </form>
         {% endif %}
         {% endif %}
@@ -27,7 +27,7 @@
     <br>
     <form method="post">
         <label>
-            <textarea name="comment" placeholder="Write a comment here!" class="monospace"></textarea>
+            <textarea name="comment-text" placeholder="Write a comment here!" class="monospace"></textarea>
         </label>
         <br>
         {% if error %}
@@ -35,7 +35,7 @@
         <br>
         {% endif %}
 
-        <input type="submit" value="Post Comment" class="submit-btn">
+        <input type="submit" name="comment=new={{post.post_id}}=0" value="Post Comment" class="submit-btn">
     </form>
     {% endif %}
 

@@ -1,5 +1,5 @@
 # Multi User Blog
-The purpose of this project is to demonstrate knowledge of Google App Engine to build a full featured blog. It also has some social features such as the ability to comment on and like posts.
+The purpose of this project is to demonstrate how you can used Google App Engine to build a full featured blog. It also demostrates how to implement some social features such as the ability to comment on and like posts.
 ## Installation
 * Install Google App Engine
 * Clone this project to your system
