@@ -194,7 +194,7 @@ class Blog_Post():
 
         # escape all html in the body then replace line breaks with <br>
         body_html_esc = render_str("make-safe.html", text=self.body)
-        self.body_br = markdown.markdown(render_line_breaks(body_html_esc))
+        self.body_br = markdown.markdown(body_html_esc)
         return render_str("post.html", entry = self)
 
 def render_line_breaks(text):
@@ -704,7 +704,7 @@ class CommentHandler(Handler):
         if body:
             if comment_id:
                 comment = Comments_db.get_by_id(int(comment_id))
-                comment.body = render_line_breaks(body)
+                comment.body = body
                 comment.put()
                 self.redirect("/bogspot/dialog?type=comment_edit_success")
             else:
