@@ -3,6 +3,7 @@ import re
 import random
 import hashlib
 import hmac
+import markdown
 from secret import SECRET
 from string import letters
 from string import digits
@@ -193,7 +194,7 @@ class Blog_Post():
 
         # escape all html in the body then replace line breaks with <br>
         body_html_esc = render_str("make-safe.html", text=self.body)
-        self.body_br = render_line_breaks(body_html_esc)
+        self.body_br = markdown.markdown(render_line_breaks(body_html_esc))
         return render_str("post.html", entry = self)
 
 def render_line_breaks(text):
@@ -517,7 +518,7 @@ def likes_and_comments_mgmt(page):
             comment.delete()
             page.redirect('/bogspot/dialog?type=comment_deleted')
         elif "edit" == arguments[1]:
-            comment_id_hash = ("%s?comment_id=%s" % (str(post_id), 
+            comment_id_hash = ("%s?comment_id=%s" % (str(post_id),
                                 make_secure_val(str(comment_id))))
             page.redirect('/bogspot/comment/%s' % comment_id_hash)
         elif "new" == arguments[1] or "new-text" == arguments[1]:
