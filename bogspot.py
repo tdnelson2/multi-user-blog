@@ -236,8 +236,8 @@ class SpecificPostHandler(Handler):
     def get(self, entry_id):
         entry = models.Blog_db.get_by_id(int(entry_id))
         if entry:
-            post = creator.build_post(entry, 
-                                      self.user, 
+            post = creator.build_post(entry,
+                                      self.user,
                                       models.User_Account_db)
             if post:
                 # if no error, return empty string
@@ -255,8 +255,8 @@ class SpecificPostHandler(Handler):
             er_redirect(entry_id)
 
     def post(self, entry_id):
-        user_input.likes_and_comments_mgmt(self, 
-                                           models.Comments_db, 
+        user_input.likes_and_comments_mgmt(self,
+                                           models.Comments_db,
                                            models.Blog_db)
 
 
