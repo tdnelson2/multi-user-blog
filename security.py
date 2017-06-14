@@ -1,4 +1,3 @@
-
 import re
 import random
 import hashlib
@@ -19,6 +18,7 @@ username_taken = "<b>Username already exists</b><br>"
 invalid_password = "<b>That wasn't a valid password.</b><br>"
 invalid_verify = "<b>Your passwords didn't match.</b><br>"
 invalid_email = "<b>That's not a valid email.</b><br>"
+
 
 def hash_str(s):
     return hmac.new(SECRET, s).hexdigest()
@@ -52,6 +52,8 @@ def valid_pw(name, pw, h):
     return input_hash == existing_hash
 
 # User signup/login
+
+
 def authenticate_login(username, db, User_Account_db, password=None):
     query = "SELECT * FROM User_Account_db WHERE username='%s'" % username
     hits = db.GqlQuery(query)
@@ -110,6 +112,7 @@ def eval_signup_or_login(username, password, verify=None,
     if not er:
         return None
     return exceptions
+
 
 def eval_permissions(page, entry_author_id, should_redirect=True):
     if page.user:

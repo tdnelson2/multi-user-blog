@@ -7,6 +7,8 @@ import user_input
 import webapp2
 
 # Page handlers
+
+
 class Handler(webapp2.RequestHandler):
 
     def write(self, *a, **kw):
@@ -33,7 +35,7 @@ class Handler(webapp2.RequestHandler):
             if cookie_val:
                 entry = models.User_Account_db.get_by_id(int(cookie_val))
 
-                # if user account does not exits, catch the error
+                # if user account does not exit, catch the error
                 try:
                     un = entry.username
                     return entry
@@ -74,6 +76,13 @@ class Handler(webapp2.RequestHandler):
     def unknown_error(self):
         self.redirect('/bogspot/dialog?type=unknown_error')
 
+    def er_redirect(self, post_id):
+        self.redirect('/bogspot/dialog?type=unknown_error'
+                      '&post_id=%s' % str(entry_id))
+
+    def unauthorized(self):
+        self.redirect('/bogspot/dialog?type=unauthorized_post')
+
     def initialize(self, *a, **kw):
         webapp2.RequestHandler.initialize(self, *a, **kw)
         self.user = self.get_user_account('CurrentUser')
@@ -98,17 +107,21 @@ class SignupHandler(Handler):
         password = self.request.get('password', "")
         verify = self.request.get('verify', "")
         email = self.request.get('email', "")
-        username_exists = security.authenticate_login(username, models.db, models.User_Account_db)
-        params = security.eval_signup_or_login(username, password, verify, email,
-                                      username_exists)
+        username_exists = security.authenticate_login(
+            username, models.db, models.User_Account_db)
+        params = security.eval_signup_or_login(username,
+                                               password,
+                                               verify,
+                                               email,
+                                               username_exists)
 
         # proceed to welcome, if no errors found
         if params is None:
             salt = security.make_salt()
             password_hash = security.make_pw_hash(username, password, salt)
             row = models.User_Account_db(username=username,
-                                  password_hash=password_hash,
-                                  email=email, salt=salt)
+                                         password_hash=password_hash,
+                                         email=email, salt=salt)
             row.put()
             self.write_login_cookie(str(row.key().id()))
             self.redirect('/bogspot/welcome')
@@ -120,7 +133,7 @@ class SignupHandler(Handler):
 
 class LoginHandler(Handler):
 
-    # put link in the body's header.
+    # put Login/Logout/Create Account link in the body's header.
     # a link is added automatically by self.render() if you don't overrided it
 
     def append_signup_parms(self, params):
@@ -147,15 +160,16 @@ class LoginHandler(Handler):
 
         # proceed to welcome, if no errors found
         if params is None:
-            user_id = security.authenticate_login(username, models.db, models.User_Account_db,  password)
+            user_id = security.authenticate_login(
+                username, models.db, models.User_Account_db,  password)
             if user_id:
                 self.write_login_cookie(user_id)
                 self.redirect('/bogspot/welcome')
             else:
                 self.render('login.html',
-                            login_msg = "<br><b>Invalid login</b>",
-                            login_toggle_link = '/bogspot/signup',
-                            login_toggle_text = 'Create Account')
+                            login_msg="<br><b>Invalid login</b>",
+                            login_toggle_link='/bogspot/signup',
+                            login_toggle_text='Create Account')
 
         # show errors
         else:
@@ -167,9 +181,9 @@ class WelcomeHandler(Handler):
 
     def get(self):
         if self.user:
-            self.render('welcome.html', username = self.user.username,
-                        login_toggle_link = '/bogspot/logout',
-                        login_toggle_text = 'Logout')
+            self.render('welcome.html', username=self.user.username,
+                        login_toggle_link='/bogspot/logout',
+                        login_toggle_text='Logout')
         else:
             self.redirect('/bogspot/signup')
 
@@ -185,14 +199,16 @@ class LogoutHandler(Handler):
 class MainPageHandler(Handler):
 
     def get(self):
-        entries = creator.all_posts(self.user, models.db, models.Blog_db, models.User_Account_db)
+        entries = creator.all_posts(
+            self.user, models.db, models.Blog_db, models.User_Account_db)
         link = '/bogspot/login'
         if self.user:
             link = '/bogspot/newpost'
-        self.render("main.html", entries=entries, new_post_button_link = link)
+        self.render("main.html", entries=entries, new_post_button_link=link)
 
     def post(self):
-        user_input.likes_and_comments_mgmt(self, models.Comments_db, models.Blog_db)
+        user_input.likes_and_comments_mgmt(
+            self, models.Comments_db, models.Blog_db)
 
 
 class MainRedirectHandler(Handler):
@@ -206,22 +222,13 @@ class MainRedirectHandler(Handler):
 class NewPostHandler(Handler):
 
     def get(self):
-        self.render_edit_form()
+        if self.user:
+            self.render_edit_form()
+        else:
+            self.redirect('/bogspot/login')
 
     def post(self):
-        title = self.request.get("subject")
-        body = self.request.get("content")
-
-        if title and body:
-            row = models.Blog_db(title=title,
-                          body=body,
-                          author_id=self.user.key().id())
-            row.put()
-            self.redirect("/bogspot/" + str(row.key().id()))
-        else:
-            self.render_edit_form(error="We need both title and a body!",
-                                  title=title,
-                                  body=body)
+        user_input.new_post(self, models.Blog_db)
 
 
 class SpecificPostHandler(Handler):
@@ -229,23 +236,28 @@ class SpecificPostHandler(Handler):
     def get(self, entry_id):
         entry = models.Blog_db.get_by_id(int(entry_id))
         if entry:
-            post = creator.build_post(entry, self.user, models.User_Account_db)
+            post = creator.build_post(entry, 
+                                      self.user, 
+                                      models.User_Account_db)
             if post:
                 # if no error, return empty string
                 error = self.request.get("error") or ""
-                comments = creator.get_comments(int(entry_id), models.db, models.Comments_db, models.User_Account_db)
+                comments = creator.get_comments(int(entry_id), models.db,
+                                                models.Comments_db,
+                                                models.User_Account_db)
 
                 self.render("specific-blog-entry.html", post=post,
                             user=self.user, comments=comments,
                             error=re.sub('_', ' ', error))
             else:
-                self.write("could not render page for entry id: " + entry_id)
+                er_redirect(entry_id)
         else:
-            self.write("could not render page for entry id: " + entry_id)
+            er_redirect(entry_id)
 
     def post(self, entry_id):
-        user_input.likes_and_comments_mgmt(self, models.Comments_db, models.Blog_db)
-
+        user_input.likes_and_comments_mgmt(self, 
+                                           models.Comments_db, 
+                                           models.Blog_db)
 
 
 class EditPostHandler(Handler):
@@ -256,35 +268,17 @@ class EditPostHandler(Handler):
 
             # If permissions are correct allow editing
             if entry.author_id == self.user.key().id():
-                self.render_edit_form(title = entry.title,
-                                      body = entry.body,
-                                      cancel_button_link = "/bogspot/%s"
+                self.render_edit_form(title=entry.title,
+                                      body=entry.body,
+                                      cancel_button_link="/bogspot/%s"
                                       % str(entry.key().id()))
             else:
-                self.redirect('/bogspot/dialog?type=unauthorized_post')
+                self.unauthorized()
         else:
             self.redirect('/bogspot/dialog?type=url_error')
 
     def post(self, entry_id_hash):
-        title = self.request.get("subject")
-        body = self.request.get("content")
-        entry_id = security.check_secure_val(entry_id_hash)
-        if title and body:
-
-            # if id is valid, save the comment
-            if entry_id:
-                entry = models.Blog_db.get_by_id(int(entry_id))
-                entry.title = title
-                entry.body = body
-                entry.put()
-                self.redirect('/bogspot/dialog?type=post_edit_success')
-            else:
-                self.redirect('/bogspot/dialog?type=unauthorized_post')
-        else:
-            self.render_edit_form(error="We need both title and a body!",
-                                  title=title, body=body,
-                                  cancel_button_link="/bogspot/%s"
-                                  % entry_id)
+        user_input.edit_post(self, entry_id_hash, models.Blog_db)
 
 
 class CommentHandler(Handler):
@@ -359,8 +353,8 @@ class DialogHandler(Handler):
         elif type == 'post_edit_success':
             self.dialog("Your post has been updated. You da best!")
         elif type == 'unauthorized_post':
-            self.dialog("Somehow you were almost able to post this "
-                        "without correct permisions. "
+            self.dialog("Somehow you were almost able to post "
+                        "without correct permisions."
                         "\nAre you a hacker? If so, I'm screwed.")
         elif type == 'unknown_error':
             self.dialog('Something went wrong.\nError code: "OH SHIT!"')

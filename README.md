@@ -14,10 +14,10 @@ The purpose of this project is to demonstrate how you can used Google App Engine
 * Run `gcloud app deploy`
 * Go to the url that gets provided after you run the aforementioned command
 ## Features
+* Supports a limited subset of Markdown ([the python implementation of Markdown](https://pypi.python.org/pypi/Markdown))
 * Login generates a secure cookie uniquely identifying the user
 * Passwords are hashed and salted for added security
 * Static links render dynamically and display contextual information
 ## Future Improvements
 * Return user to origin after they get bounced to the sign in page
 * Return user to orgin after they like/comment/edit/delete
-* Support markdown

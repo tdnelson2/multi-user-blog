@@ -7,6 +7,7 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
                                autoescape=True)
 
+
 def render_str(template, **params):
     t = jinja_env.get_template(template)
     return t.render(params)
@@ -36,10 +37,12 @@ class Blog_Post():
         # escape all html in the body then replace line breaks with <br>
         body_html_esc = render_str("make-safe.html", text=self.body)
         self.body_br = markdown.markdown(body_html_esc)
-        return render_str("post.html", entry = self)
+        return render_str("post.html", entry=self)
+
 
 def render_line_breaks(text):
     return re.sub('\n', '<br>', text)
+
 
 def mk_like_msg(like_c, u_liked):
     if like_c == 0:
@@ -54,6 +57,7 @@ def mk_like_msg(like_c, u_liked):
         return "You and %s other people think this is rad" % str(like_c - 1)
     else:
         return "%s people think this is rad" % str(like_c)
+
 
 def build_post(entry, user, User_Account_db):
     author_ac = User_Account_db.get_by_id(int(entry.author_id))
@@ -115,6 +119,8 @@ def get_comments(entry_id, db, Comments_db, User_Account_db):
 
 # since len() doesn't work on GqlQuery,
 # this is a hack to determine if it's empty
+
+
 def db_query_is_empty(result):
     rows = []
 
@@ -125,6 +131,7 @@ def db_query_is_empty(result):
     if len(rows) > 0:
         return False
     return True
+
 
 def is_liked(entry, user):
     if user:
