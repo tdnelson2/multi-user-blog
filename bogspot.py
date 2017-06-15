@@ -8,6 +8,19 @@ import webapp2
 
 # Page handlers
 
+# suggested by Udacity reviewer
+def login_required(func):
+    """
+    A decorator to confirm login or redirect as needed
+    """
+    def login(self, *args, **kwargs):
+        # Logged out users are redirected, logged in users cont. to func.
+        if not self.user:
+            self.redirect('/bogspot/login')
+        else:
+            func(self, *args, **kwargs)
+    return login
+
 
 class Handler(webapp2.RequestHandler):
 
@@ -179,13 +192,9 @@ class LoginHandler(Handler):
 
 class WelcomeHandler(Handler):
 
+    @login_required
     def get(self):
-        if self.user:
-            self.render('welcome.html', username=self.user.username,
-                        login_toggle_link='/bogspot/logout',
-                        login_toggle_text='Logout')
-        else:
-            self.redirect('/bogspot/signup')
+        self.render('welcome.html', username=self.user.username)
 
 
 class LogoutHandler(Handler):
@@ -206,27 +215,27 @@ class MainPageHandler(Handler):
             link = '/bogspot/newpost'
         self.render("main.html", entries=entries, new_post_button_link=link)
 
+    @login_required
     def post(self):
-        user_input.likes_and_comments_mgmt(
-            self, models.Comments_db, models.Blog_db)
+        user_input.likes_and_comments_mgmt(self,
+                                           models.Comments_db,
+                                           models.Blog_db)
 
 
 class MainRedirectHandler(Handler):
 
     def get(self):
-
         # need to have every page a child of bogspot for cookies
         self.redirect("/bogspot/index")
 
 
 class NewPostHandler(Handler):
 
+    @login_required
     def get(self):
-        if self.user:
             self.render_edit_form()
-        else:
-            self.redirect('/bogspot/login')
 
+    @login_required
     def post(self):
         user_input.new_post(self, models.Blog_db)
 
@@ -254,6 +263,7 @@ class SpecificPostHandler(Handler):
         else:
             er_redirect(entry_id)
 
+    @login_required
     def post(self, entry_id):
         user_input.likes_and_comments_mgmt(self,
                                            models.Comments_db,
@@ -262,6 +272,7 @@ class SpecificPostHandler(Handler):
 
 class EditPostHandler(Handler):
 
+    @login_required
     def get(self, entry_id_hash):
         entry = self.get_db_from_id_hash(entry_id_hash, models.Blog_db)
         if entry:
@@ -277,12 +288,14 @@ class EditPostHandler(Handler):
         else:
             self.redirect('/bogspot/dialog?type=url_error')
 
+    @login_required
     def post(self, entry_id_hash):
         user_input.edit_post(self, entry_id_hash, models.Blog_db)
 
 
 class CommentHandler(Handler):
 
+    @login_required
     def get(self, origin_entry_id):
         comment = self.get_db_from_id_hash(self.request.get("comment_id"),
                                            models.Comments_db)
@@ -302,6 +315,7 @@ class CommentHandler(Handler):
         else:
             self.unknown_error()
 
+    @login_required
     def post(self, origin_entry_id):
         body = self.request.get("comment")
         comment_id = security.check_secure_val(self.request.get('comment_id'))
@@ -373,5 +387,6 @@ app = webapp2.WSGIApplication([(r'/bogspot/signup', SignupHandler),
                                (r'/bogspot/comment/(\w+)', CommentHandler),
                                (r'/bogspot/dialog', DialogHandler),
                                (r'/bogspot/', MainRedirectHandler),
-                               (r'/bogspot', MainRedirectHandler)],
+                               (r'/bogspot', MainRedirectHandler),
+                               (r'/', MainRedirectHandler)],
                               debug=True)
