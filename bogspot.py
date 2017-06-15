@@ -44,9 +44,9 @@ class Handler(webapp2.RequestHandler):
     def get_user_account(self, cookie_name):
         user_cookie_str = self.request.cookies.get(cookie_name)
         if user_cookie_str:
-            cookie_val = security.check_secure_val(user_cookie_str)
+            cookie_val = security.Utils.check_secure_val(user_cookie_str)
             if cookie_val:
-                entry = models.User_Account_db.get_by_id(int(cookie_val))
+                entry = models.UserAccounts.get_by_id(int(cookie_val))
 
                 # if user account does not exit, catch the error
                 try:
@@ -57,7 +57,7 @@ class Handler(webapp2.RequestHandler):
         return None
 
     def get_db_from_id_hash(self, id_hash, db):
-        entry_id = security.check_secure_val(id_hash)
+        entry_id = security.Utils.check_secure_val(id_hash)
         if entry_id:
             entry = db.get_by_id(int(entry_id))
             return entry
@@ -65,10 +65,10 @@ class Handler(webapp2.RequestHandler):
 
     def read_secure_cookie(self, name):
         cookie_val = self.request.cookies.get(name)
-        return cookie_val and security.check_secure_val(cookie_val)
+        return cookie_val and security.Utils.check_secure_val(cookie_val)
 
     def write_login_cookie(self, user_id):
-        current_user_s = security.make_secure_val(user_id)
+        current_user_s = security.Utils.make_secure_val(user_id)
         self.response.headers.add_header('Set-Cookie',
                                          str('CurrentUser=%s; Path=/bogspot/'
                                              % current_user_s))
@@ -121,7 +121,7 @@ class SignupHandler(Handler):
         verify = self.request.get('verify', "")
         email = self.request.get('email', "")
         username_exists = security.authenticate_login(
-            username, models.db, models.User_Account_db)
+            username, models.db, models.UserAccounts)
         params = security.eval_signup_or_login(username,
                                                password,
                                                verify,
@@ -130,9 +130,9 @@ class SignupHandler(Handler):
 
         # proceed to welcome, if no errors found
         if params is None:
-            salt = security.make_salt()
-            password_hash = security.make_pw_hash(username, password, salt)
-            row = models.User_Account_db(username=username,
+            salt = security.Utils.make_salt()
+            password_hash = security.Utils.make_pw_hash(username, password, salt)
+            row = models.UserAccounts(username=username,
                                          password_hash=password_hash,
                                          email=email, salt=salt)
             row.put()
@@ -174,7 +174,7 @@ class LoginHandler(Handler):
         # proceed to welcome, if no errors found
         if params is None:
             user_id = security.authenticate_login(
-                username, models.db, models.User_Account_db,  password)
+                username, models.db, models.UserAccounts,  password)
             if user_id:
                 self.write_login_cookie(user_id)
                 self.redirect('/bogspot/welcome')
@@ -209,7 +209,7 @@ class MainPageHandler(Handler):
 
     def get(self):
         entries = creator.all_posts(
-            self.user, models.db, models.Blog_db, models.User_Account_db)
+            self.user, models.db, models.Blog, models.UserAccounts)
         link = '/bogspot/login'
         if self.user:
             link = '/bogspot/newpost'
@@ -218,8 +218,8 @@ class MainPageHandler(Handler):
     @login_required
     def post(self):
         user_input.likes_and_comments_mgmt(self,
-                                           models.Comments_db,
-                                           models.Blog_db)
+                                           models.Comments,
+                                           models.Blog)
 
 
 class MainRedirectHandler(Handler):
@@ -237,23 +237,23 @@ class NewPostHandler(Handler):
 
     @login_required
     def post(self):
-        user_input.new_post(self, models.Blog_db)
+        user_input.new_post(self, models.Blog)
 
 
 class SpecificPostHandler(Handler):
 
     def get(self, entry_id):
-        entry = models.Blog_db.get_by_id(int(entry_id))
+        entry = models.Blog.get_by_id(int(entry_id))
         if entry:
             post = creator.build_post(entry,
                                       self.user,
-                                      models.User_Account_db)
+                                      models.UserAccounts)
             if post:
                 # if no error, return empty string
                 error = self.request.get("error") or ""
                 comments = creator.get_comments(int(entry_id), models.db,
-                                                models.Comments_db,
-                                                models.User_Account_db)
+                                                models.Comments,
+                                                models.UserAccounts)
 
                 self.render("specific-blog-entry.html", post=post,
                             user=self.user, comments=comments,
@@ -266,15 +266,15 @@ class SpecificPostHandler(Handler):
     @login_required
     def post(self, entry_id):
         user_input.likes_and_comments_mgmt(self,
-                                           models.Comments_db,
-                                           models.Blog_db)
+                                           models.Comments,
+                                           models.Blog)
 
 
 class EditPostHandler(Handler):
 
     @login_required
     def get(self, entry_id_hash):
-        entry = self.get_db_from_id_hash(entry_id_hash, models.Blog_db)
+        entry = self.get_db_from_id_hash(entry_id_hash, models.Blog)
         if entry:
 
             # If permissions are correct allow editing
@@ -290,7 +290,7 @@ class EditPostHandler(Handler):
 
     @login_required
     def post(self, entry_id_hash):
-        user_input.edit_post(self, entry_id_hash, models.Blog_db)
+        user_input.edit_post(self, entry_id_hash, models.Blog)
 
 
 class CommentHandler(Handler):
@@ -298,30 +298,27 @@ class CommentHandler(Handler):
     @login_required
     def get(self, origin_entry_id):
         comment = self.get_db_from_id_hash(self.request.get("comment_id"),
-                                           models.Comments_db)
+                                           models.Comments)
         if comment:
-            if self.user:
 
-                # If permissions are correct allow editing
-                if self.user.key().id() == comment.user_id:
-                    self.render_edit_form(type="comment",
-                                          body=comment.body,
-                                          cancel_button_link="/bogspot/%s"
-                                          % origin_entry_id)
-                else:
-                    self.redirect('/bogspot/dialog?type=unauthorized_comment')
+            # If permissions are correct allow editing
+            if self.user.key().id() == comment.user_id:
+                self.render_edit_form(type="comment",
+                                      body=comment.body,
+                                      cancel_button_link="/bogspot/%s"
+                                      % origin_entry_id)
             else:
-                self.redirect('/bogspot/login')
+                self.redirect('/bogspot/dialog?type=unauthorized_comment')
         else:
             self.unknown_error()
 
     @login_required
     def post(self, origin_entry_id):
         body = self.request.get("comment")
-        comment_id = security.check_secure_val(self.request.get('comment_id'))
+        comment_id = security.Utils.check_secure_val(self.request.get('comment_id'))
         if body:
             if comment_id:
-                comment = models.Comments_db.get_by_id(int(comment_id))
+                comment = models.Comments.get_by_id(int(comment_id))
                 comment.body = body
                 comment.put()
                 self.redirect("/bogspot/dialog?type=comment_edit_success")

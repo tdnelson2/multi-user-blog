@@ -14,7 +14,7 @@ def render_str(template, **params):
 
 
 # this class is necessary since GqlQuery won't let you count items
-class Blog_Post():
+class BlogPost():
 
     """Data structure for use when rendering blog posts"""
 
@@ -31,17 +31,12 @@ class Blog_Post():
     def render(self):
         self.like_c = len(self.likes)
         self.like_msg = mk_like_msg(self.like_c, self.u_liked)
-        # self.like_state = "disabled"
         self.like_state = "enabled" if self.u_liked else "disabled"
 
-        # escape all html in the body then replace line breaks with <br>
+        # escape all html in the body then render markdown
         body_html_esc = render_str("make-safe.html", text=self.body)
         self.body_br = markdown.markdown(body_html_esc)
         return render_str("post.html", entry=self)
-
-
-def render_line_breaks(text):
-    return re.sub('\n', '<br>', text)
 
 
 def mk_like_msg(like_c, u_liked):
@@ -59,31 +54,35 @@ def mk_like_msg(like_c, u_liked):
         return "%s people think this is rad" % str(like_c)
 
 
-def build_post(entry, user, User_Account_db):
-    author_ac = User_Account_db.get_by_id(int(entry.author_id))
+def build_post(entry, user, UserAccounts):
+    """ organaize data from models so it can be used to render a post """
+
+    author_ac = UserAccounts.get_by_id(int(entry.author_id))
     if author_ac:
         author = author_ac.username
 
         # when you see posts written by yourself, author will display as "You"
         if user and author == user.username:
             author = "You"
-        return Blog_Post(entry.key().id(),
-                         author, entry.title, entry.body,
-                         entry.created.strftime("%b %d, %Y"), entry.likes,
-                         is_liked(entry, user))
+        return BlogPost(entry.key().id(),
+                        author, entry.title, entry.body,
+                        entry.created.strftime("%b %d, %Y"), entry.likes,
+                        is_liked(entry, user))
     return None
 
 
-def all_posts(user, db, Blog_db, User_Account_db):
-    posts = db.GqlQuery("SELECT * FROM Blog_db ORDER BY created DESC")
+def all_posts(user, db, Blog, UserAccounts):
+    """ returns an array of BlogPost objects """
+
+    posts = db.GqlQuery("SELECT * FROM Blog ORDER BY created DESC")
 
     # test if anything was returned
     if not db_query_is_empty(posts):
         post_ary = []
 
-        # create array of Blog_Post objects containing info to display post
+        # create array of BlogPost objects containing info to display post
         for post in posts:
-            post_obj = build_post(post, user, User_Account_db)
+            post_obj = build_post(post, user, UserAccounts)
             if post_obj:
                 post_ary.append(post_obj)
         if post_ary:
@@ -91,8 +90,10 @@ def all_posts(user, db, Blog_db, User_Account_db):
     return None
 
 
-def get_comments(entry_id, db, Comments_db, User_Account_db):
-    query = ("SELECT * FROM Comments_db "
+def get_comments(entry_id, db, Comments, UserAccounts):
+    """ returns an array of comment dicts associated with a specific post """
+
+    query = ("SELECT * FROM Comments "
              "WHERE blog_post_id=%d "
              "ORDER BY created ASC" % entry_id)
     hits = db.GqlQuery(query)
@@ -105,7 +106,7 @@ def get_comments(entry_id, db, Comments_db, User_Account_db):
         # build dictionary containing all pertainant info
         comments = []
         for hit in hits:
-            username = User_Account_db.get_by_id(hit.user_id).username
+            username = UserAccounts.get_by_id(hit.user_id).username
             # if user no longer exists, the comment will not be shown
             if username:
                 entry = {"username": username,
@@ -117,13 +118,11 @@ def get_comments(entry_id, db, Comments_db, User_Account_db):
             return comments
     return None
 
-# since len() doesn't work on GqlQuery,
-# this is a hack to determine if it's empty
-
 
 def db_query_is_empty(result):
-    rows = []
+    """ determine whether the result of a GqlQuery is empty """
 
+    rows = []
     # start iterating through GqlQuery
     for r in result:
         rows.append(r)
@@ -134,6 +133,8 @@ def db_query_is_empty(result):
 
 
 def is_liked(entry, user):
+    """ determine whether current user has liked the post """
+
     if user:
         likes = entry.likes
         user_id = user.key().id()

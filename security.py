@@ -8,54 +8,50 @@ from string import digits
 
 import creator
 
-# regular expressions for validating login/signup
-USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
-PASSWORD_RE = re.compile(r"^.{3,20}$")
-EMAIL_RE = re.compile(r"^[\S]+@[\S]+.[\S]+$")
+class Utils():
 
-invalid_username = "<b>That's not a valid username.</b><br>"
-username_taken = "<b>Username already exists</b><br>"
-invalid_password = "<b>That wasn't a valid password.</b><br>"
-invalid_verify = "<b>Your passwords didn't match.</b><br>"
-invalid_email = "<b>That's not a valid email.</b><br>"
+    """ methods for securing and validating """
 
+    @classmethod
+    def hash_str(self, s):
+        return hmac.new(SECRET, s).hexdigest()
 
-def hash_str(s):
-    return hmac.new(SECRET, s).hexdigest()
+    @classmethod
+    def make_secure_val(self, s):
+        return "%s_%s" % (s, self.hash_str(s))
 
+    @classmethod
+    def check_secure_val(self, s):
+        val = s.split('_')[0]
+        if s == self.make_secure_val(val):
+            return val
 
-def make_secure_val(s):
-    return "%s_%s" % (s, hash_str(s))
+    @classmethod
+    def make_salt(self):
+        char_set = digits + letters
+        return ''.join(random.sample(char_set*30, 30))
 
+    @classmethod
+    def make_pw_hash(self, name, pw, salt=None):
+        if salt == None:
+            salt = self.make_salt()
+        h = hashlib.sha256(name + pw + salt + SECRET).hexdigest()
+        return '%s_%s' % (h, salt)
 
-def check_secure_val(s):
-    val = s.split('_')[0]
-    if s == make_secure_val(val):
-        return val
-
-
-def make_salt():
-    char_set = digits + letters
-    return ''.join(random.sample(char_set*30, 30))
-
-
-def make_pw_hash(name, pw, salt=None):
-    if salt == None:
-        salt = make_salt()
-    h = hashlib.sha256(name + pw + salt + SECRET).hexdigest()
-    return '%s_%s' % (h, salt)
-
-
-def valid_pw(name, pw, h):
-    input_hash = make_pw_hash(name, pw, h.split("_")[1]).split("_")[0]
-    existing_hash = h.split("_")[0]
-    return input_hash == existing_hash
+    @classmethod
+    def valid_pw(self, name, pw, h):
+        input_hash = self.make_pw_hash(name, pw, h.split("_")[1]).split("_")[0]
+        existing_hash = h.split("_")[0]
+        return input_hash == existing_hash
 
 # User signup/login
 
 
-def authenticate_login(username, db, User_Account_db, password=None):
-    query = "SELECT * FROM User_Account_db WHERE username='%s'" % username
+def authenticate_login(username, db, UserAccounts, password=None):
+
+    """ authenticates new or existing users """
+
+    query = "SELECT * FROM UserAccounts WHERE username='%s'" % username
     hits = db.GqlQuery(query)
     if not creator.db_query_is_empty(hits):
         entry = hits[0]
@@ -68,13 +64,27 @@ def authenticate_login(username, db, User_Account_db, password=None):
     # This is used by login to authenticate
         else:
             if entry.username == username:
-                if valid_pw(username, password, entry.password_hash):
+                if Utils.valid_pw(username, password, entry.password_hash):
                     return str(entry.key().id())
     return None
 
 
 def eval_signup_or_login(username, password, verify=None,
                          email=None, username_exists=False):
+
+    """ checks whether login or signup information is valid """
+
+    # regular expressions for validating login/signup
+    USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
+    PASSWORD_RE = re.compile(r"^.{3,20}$")
+    EMAIL_RE = re.compile(r"^[\S]+@[\S]+.[\S]+$")
+
+    invalid_username = "<b>That's not a valid username.</b><br>"
+    username_taken = "<b>Username already exists</b><br>"
+    invalid_password = "<b>That wasn't a valid password.</b><br>"
+    invalid_verify = "<b>Your passwords didn't match.</b><br>"
+    invalid_email = "<b>That's not a valid email.</b><br>"
+
     er = False
     ui_email = email or ""
 
@@ -115,18 +125,16 @@ def eval_signup_or_login(username, password, verify=None,
 
 
 def eval_permissions(page, entry_author_id, should_redirect=True):
-    if page.user:
-        if page.user.key().id() == entry_author_id:
 
-            # permission granted
-            return True
-        else:
+    """ checks whether current user owns any given user-generated item """
 
-            # permission denied
-            if should_redirect:
-                page.redirect('/bogspot/dialog?type=not_author')
-            return False
+    if page.user.key().id() == entry_author_id:
+
+        # permission granted
+        return True
     else:
-        # redirect to login
-        page.redirect('/bogspot/login')
+
+        # permission denied
+        if should_redirect:
+            page.redirect('/bogspot/dialog?type=not_author')
         return False

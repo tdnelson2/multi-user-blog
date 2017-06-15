@@ -2,7 +2,7 @@ import security
 import creator
 
 
-def likes_and_comments_mgmt(page, Comments_db, Blog_db):
+def likes_and_comments_mgmt(page, Comments, Blog):
 
     arguments = page.request.arguments()[0].split("=")
 
@@ -30,39 +30,33 @@ def likes_and_comments_mgmt(page, Comments_db, Blog_db):
                           % (arguments[2], arguments[3]))
             return None
         if "delete" == arguments[1]:
-            comment = Comments_db.get_by_id(comment_id)
+            comment = Comments.get_by_id(comment_id)
             if comment and comment.user_id == page.user.key().id():
                 comment.delete()
                 page.redirect('/bogspot/dialog?type=comment_deleted')
             else:
                 page.unauthorized()
         elif "edit" == arguments[1]:
-            if page.user:
-                comment_e = Comments_db.get_by_id(comment_id)
-                if comment_e and comment_e.user_id == page.user.key().id():
-                    comment_id_hash_s = security.make_secure_val(
-                        str(comment_id))
-                    comment_id_hash = ("%s?comment_id=%s"
-                                       % (str(post_id), comment_id_hash_s))
-                    page.redirect('/bogspot/comment/%s' % comment_id_hash)
-                else:
-                    page.unauthorized()
+            comment_e = Comments.get_by_id(comment_id)
+            if comment_e and comment_e.user_id == page.user.key().id():
+                comment_id_hash_s = security.Utils.make_secure_val(
+                    str(comment_id))
+                comment_id_hash = ("%s?comment_id=%s"
+                                   % (str(post_id), comment_id_hash_s))
+                page.redirect('/bogspot/comment/%s' % comment_id_hash)
         elif "new" == arguments[1] or "new-text" == arguments[1]:
 
             comment = page.request.get("comment=new-text=%s=0" % str(post_id))
 
             # save comment if it contains text
-            if page.user:
-                if comment:
-                    row = Comments_db(blog_post_id=post_id,
-                                      user_id=page.user.key().id(),
-                                      body=comment)
-                    row.put()
-                    page.redirect('/bogspot/dialog?type=comment_added')
-                else:
-                    page.redirect('/bogspot/%s?error=Comment_contains_no_text#Comments')  # NOQA
+            if comment:
+                row = Comments(blog_post_id=post_id,
+                                  user_id=page.user.key().id(),
+                                  body=comment)
+                row.put()
+                page.redirect('/bogspot/dialog?type=comment_added')
             else:
-                page.redirect('/bogspot/login')
+                page.redirect('/bogspot/%s?error=Comment_contains_no_text#Comments')  # NOQA
     elif len(arguments) == 3 and "post" == arguments[0]:
         try:
             post_id = int(arguments[2])
@@ -70,22 +64,19 @@ def likes_and_comments_mgmt(page, Comments_db, Blog_db):
             page.redirect('/bogspot/dialog?type=unknown_error&post_id=%s'
                           % arguments[2])
             return None
-        entry = Blog_db.get_by_id(post_id)
+        entry = Blog.get_by_id(post_id)
         if "edit" == arguments[1]:
 
             # eval_permissions will kick you to login if returns false
             if security.eval_permissions(page, entry.author_id):
-                entry_id_hash = security.make_secure_val(str(post_id))
+                entry_id_hash = security.Utils.make_secure_val(str(post_id))
                 page.redirect('/bogspot/edit-post/%s' % entry_id_hash)
         elif "delete" == arguments[1]:
             if security.eval_permissions(page, entry.author_id):
                 entry.delete()
                 page.redirect('/bogspot/dialog?type=post_deleted')
         elif "comment" == arguments[1]:
-            if page.user:
-                page.redirect('/bogspot/%s#Comments' % str(post_id))
-            else:
-                page.redirect('/bogspot/login')
+            page.redirect('/bogspot/%s#Comments' % str(post_id))
         elif "like" == arguments[1]:
 
             # pass False to override eval_permissions' redirect
@@ -94,54 +85,47 @@ def likes_and_comments_mgmt(page, Comments_db, Blog_db):
                 # can't like your own post
                 page.redirect('/bogspot/dialog?type=like')
             else:
-                if page.user:
-                    if creator.is_liked(entry, page.user):
+                if creator.is_liked(entry, page.user):
 
-                        # already liked, unklike
-                        entry.likes.remove(page.user.key().id())
-                        entry.put()
-                        page.redirect('/bogspot/dialog?type=unliked')
-                    else:
-
-                        # like
-                        entry.likes.append(page.user.key().id())
-                        entry.put()
-                        page.redirect('/bogspot/dialog?type=liked')
+                    # already liked, unklike
+                    entry.likes.remove(page.user.key().id())
+                    entry.put()
+                    page.redirect('/bogspot/dialog?type=unliked')
                 else:
-                    page.redirect('/bogspot/login')
+
+                    # like
+                    entry.likes.append(page.user.key().id())
+                    entry.put()
+                    page.redirect('/bogspot/dialog?type=liked')
     else:
         page.redirect('/bogspot/dialog?type=unknown_error')
 
 
-def new_post(page, Blog_db):
+def new_post(page, Blog):
     title = page.request.get("subject")
     body = page.request.get("content")
 
-    # Authentication/Authorization
-    if page.user:
-        if title and body:
-            row = Blog_db(title=title,
-                          body=body,
-                          author_id=page.user.key().id())
-            row.put()
-            page.redirect("/bogspot/" + str(row.key().id()))
-        else:
-            page.render_edit_form(error="We need both title and a body!",
-                                  title=title,
-                                  body=body)
+    if title and body:
+        row = Blog(title=title,
+                      body=body,
+                      author_id=page.user.key().id())
+        row.put()
+        page.redirect("/bogspot/" + str(row.key().id()))
     else:
-        page.redirect('/bogspot/dialog?type=unauthorized_post')
+        page.render_edit_form(error="We need both title and a body!",
+                              title=title,
+                              body=body)
 
 
-def edit_post(page, entry_id_hash, Blog_db):
+def edit_post(page, entry_id_hash, Blog):
     title = page.request.get("subject")
     body = page.request.get("content")
-    entry_id = security.check_secure_val(entry_id_hash)
+    entry_id = security.Utils.check_secure_val(entry_id_hash)
 
     # if entry passes both layers, we can post
     # 1st: did the id hash unhash (Authentication)?
     if entry_id:
-        entry = Blog_db.get_by_id(int(entry_id))
+        entry = Blog.get_by_id(int(entry_id))
 
         # 2nd: is the user the original author (Authorization)?
         if entry and entry.author_id == page.user.key().id():
