@@ -67,20 +67,20 @@ def likes_and_comments_mgmt(page, Comments, Blog):
         entry = Blog.get_by_id(post_id)
         if "edit" == arguments[1]:
 
-            # eval_permissions will kick you to login if returns false
-            if security.eval_permissions(page, entry.author_id):
+            # eval_authorization will kick you to login if returns false
+            if security.eval_authorization(page, entry.author_id):
                 entry_id_hash = security.Utils.make_secure_val(str(post_id))
                 page.redirect('/bogspot/edit-post/%s' % entry_id_hash)
         elif "delete" == arguments[1]:
-            if security.eval_permissions(page, entry.author_id):
+            if security.eval_authorization(page, entry.author_id):
                 entry.delete()
                 page.redirect('/bogspot/dialog?type=post_deleted')
         elif "comment" == arguments[1]:
             page.redirect('/bogspot/%s#Comments' % str(post_id))
         elif "like" == arguments[1]:
 
-            # pass False to override eval_permissions' redirect
-            if security.eval_permissions(page, entry.author_id, False):
+            # pass False to override eval_authorization' redirect
+            if security.eval_authorization(page, entry.author_id, False):
 
                 # can't like your own post
                 page.redirect('/bogspot/dialog?type=like')

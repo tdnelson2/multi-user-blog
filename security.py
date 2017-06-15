@@ -124,7 +124,7 @@ def eval_signup_or_login(username, password, verify=None,
     return exceptions
 
 
-def eval_permissions(page, entry_author_id, should_redirect=True):
+def eval_authorization(page, entry_author_id, should_redirect=True):
 
     """ checks whether current user owns any given user-generated item """
 
