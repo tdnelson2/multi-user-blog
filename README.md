@@ -1,7 +1,5 @@
 # Multi User Blog
 The purpose of this project is to demonstrate how you can used Google App Engine to build a full featured blog. It also demostrates how to implement some social media features such as the ability to comment on and like posts.
-## URL
-* Working version of this site can be viewed at [https://hello-world-165416.appspot.com/bogspot](https://hello-world-165416.appspot.com/bogspot)
 ## Installation
 * [Install Google App Engine](https://drive.google.com/open?id=0Byu3UemwRffDc21qd3duLW9LMm8)
 * Clone this project to your system
