@@ -323,10 +323,13 @@ class CommentHandler(Handler):
             self.request.get('comment_id'))
         if body:
             if comment_id:
-                comment = models.Comments.get_by_id(int(comment_id))
-                comment.body = body
-                comment.put()
-                self.redirect("/bogspot/dialog?type=comment_edit_success")
+                if comment:
+                    comment = models.Comments.get_by_id(int(comment_id))
+                    comment.body = body
+                    comment.put()
+                    self.redirect("/bogspot/dialog?type=comment_edit_success")
+                else:
+                    self.unknown_error()
             else:
                 self.redirect('/bogspot/dialog?type=unauthorized_comment')
         else:
