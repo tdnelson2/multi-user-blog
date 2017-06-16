@@ -8,7 +8,7 @@ import webapp2
 
 # Page handlers
 
-# suggested by Udacity reviewer
+# Decorators
 
 
 def login_required(func):
@@ -24,6 +24,9 @@ def login_required(func):
             func(self, *args, **kwargs)
     return login
 
+
+# todo:
+# add decorators establishing other protocols (@post_exists, @user_owns_post)
 
 class Handler(webapp2.RequestHandler):
 
@@ -323,8 +326,10 @@ class CommentHandler(Handler):
             self.request.get('comment_id'))
         if body:
             if comment_id:
+                comment = models.Comments.get_by_id(int(comment_id))
+
+                # check that comment exists in db
                 if comment:
-                    comment = models.Comments.get_by_id(int(comment_id))
                     comment.body = body
                     comment.put()
                     self.redirect("/bogspot/dialog?type=comment_edit_success")

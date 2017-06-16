@@ -36,15 +36,11 @@ def manage_post(page, Comments, Blog):
             return None
         if "delete" == arguments[1]:
             comment = Comments.get_by_id(comment_id)
-            # in case we previously failed to check if logged in...
-            if page.user:
-                if comment and comment.user_id == page.user.key().id():
-                    comment.delete()
-                    page.redirect('/bogspot/dialog?type=comment_deleted')
-                else:
-                    page.unauthorized()
+            if comment and comment.user_id == page.user.key().id():
+                comment.delete()
+                page.redirect('/bogspot/dialog?type=comment_deleted')
             else:
-                self.redirect('/bogspot/login')
+                page.unauthorized()
         elif "edit" == arguments[1]:
             comment_e = Comments.get_by_id(comment_id)
             if comment_e and comment_e.user_id == page.user.key().id():
@@ -137,8 +133,8 @@ def edit_post(page, entry_id_hash, Blog):
     entry_id = security.Utils.check_secure_val(entry_id_hash)
 
     # if entry passes both layers, we can post
-    # 1st: did the id hash hash out (and for kicks, is user logged in)
-    if entry_id and page.user:
+    # 1st: did the id hash hash out
+    if entry_id:
         entry = Blog.get_by_id(int(entry_id))
 
         # 2nd: is the user the original author (Authorization)?
