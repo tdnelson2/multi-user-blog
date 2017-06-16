@@ -8,6 +8,7 @@ from string import digits
 
 import creator
 
+
 class Utils():
 
     """ methods for securing and validating """
@@ -48,20 +49,16 @@ class Utils():
 
 
 def authenticate_login(username, db, UserAccounts, password=None):
-
     """ authenticates new or existing users """
 
     query = "SELECT * FROM UserAccounts WHERE username='%s'" % username
     hits = db.GqlQuery(query)
     if not creator.db_query_is_empty(hits):
         entry = hits[0]
-    # Used by signup to check if username already exist
+        # Used by signup to check if username already exist
         if password == None:
-            if entry.username == username:
-                return True
-            else:
-                return False
-    # This is used by login to authenticate
+            return entry.username == username
+        # Used by login to authenticate
         else:
             if entry.username == username:
                 if Utils.valid_pw(username, password, entry.password_hash):
@@ -71,7 +68,6 @@ def authenticate_login(username, db, UserAccounts, password=None):
 
 def eval_signup_or_login(username, password, verify=None,
                          email=None, username_exists=False):
-
     """ checks whether login or signup information is valid """
 
     # regular expressions for validating login/signup
@@ -125,8 +121,8 @@ def eval_signup_or_login(username, password, verify=None,
 
 
 def eval_authorization(page, entry_author_id, should_redirect=True):
-
-    """ checks whether current user owns any given user-generated item """
+    """ checks whether current user owns any given user-generated item
+    and redirects to a warning page if authorization is not granted """
 
     if page.user.key().id() == entry_author_id:
 

@@ -2,7 +2,12 @@ import security
 import creator
 
 
-def likes_and_comments_mgmt(page, Comments, Blog):
+def manage_post(page, Comments, Blog):
+    """
+    Manages edit, delete, comment and like button.
+    Intended to only work with logged in users.
+    ONLY USE IF YOU KNOW THE USER IS LOGGED IN
+    """
 
     arguments = page.request.arguments()[0].split("=")
 
@@ -51,8 +56,8 @@ def likes_and_comments_mgmt(page, Comments, Blog):
             # save comment if it contains text
             if comment:
                 row = Comments(blog_post_id=post_id,
-                                  user_id=page.user.key().id(),
-                                  body=comment)
+                               user_id=page.user.key().id(),
+                               body=comment)
                 row.put()
                 page.redirect('/bogspot/dialog?type=comment_added')
             else:
@@ -107,8 +112,8 @@ def new_post(page, Blog):
 
     if title and body:
         row = Blog(title=title,
-                      body=body,
-                      author_id=page.user.key().id())
+                   body=body,
+                   author_id=page.user.key().id())
         row.put()
         page.redirect("/bogspot/" + str(row.key().id()))
     else:
@@ -118,12 +123,17 @@ def new_post(page, Blog):
 
 
 def edit_post(page, entry_id_hash, Blog):
+    """
+    Manages blog post editing. Intended to only work with
+    logged in users. ONLY USE IF YOU KNOW THE USER IS LOGGED IN
+    """
+
     title = page.request.get("subject")
     body = page.request.get("content")
     entry_id = security.Utils.check_secure_val(entry_id_hash)
 
     # if entry passes both layers, we can post
-    # 1st: did the id hash unhash (Authentication)?
+    # 1st: did the id hash hash out
     if entry_id:
         entry = Blog.get_by_id(int(entry_id))
 

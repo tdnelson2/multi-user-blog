@@ -20,5 +20,7 @@ class UserAccounts(db.Model):
 class Comments(db.Model):
     blog_post_id = db.IntegerProperty(required=True)
     user_id = db.IntegerProperty(required=True)
+    # todo: change user_id to:
+    # author = db.ReferenceProperty(UserAccounts, required=True)
     body = db.TextProperty(required=True)
     created = db.DateTimeProperty(auto_now_add=True)

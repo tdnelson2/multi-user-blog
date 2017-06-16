@@ -9,10 +9,13 @@ import webapp2
 # Page handlers
 
 # suggested by Udacity reviewer
+
+
 def login_required(func):
     """
     A decorator to confirm login or redirect as needed
     """
+
     def login(self, *args, **kwargs):
         # Logged out users are redirected, logged in users cont. to func.
         if not self.user:
@@ -131,10 +134,11 @@ class SignupHandler(Handler):
         # proceed to welcome, if no errors found
         if params is None:
             salt = security.Utils.make_salt()
-            password_hash = security.Utils.make_pw_hash(username, password, salt)
+            password_hash = security.Utils.make_pw_hash(
+                username, password, salt)
             row = models.UserAccounts(username=username,
-                                         password_hash=password_hash,
-                                         email=email, salt=salt)
+                                      password_hash=password_hash,
+                                      email=email, salt=salt)
             row.put()
             self.write_login_cookie(str(row.key().id()))
             self.redirect('/bogspot/welcome')
@@ -217,9 +221,9 @@ class MainPageHandler(Handler):
 
     @login_required
     def post(self):
-        user_input.likes_and_comments_mgmt(self,
-                                           models.Comments,
-                                           models.Blog)
+        user_input.manage_post(self,
+                               models.Comments,
+                               models.Blog)
 
 
 class MainRedirectHandler(Handler):
@@ -233,7 +237,7 @@ class NewPostHandler(Handler):
 
     @login_required
     def get(self):
-            self.render_edit_form()
+        self.render_edit_form()
 
     @login_required
     def post(self):
@@ -265,9 +269,9 @@ class SpecificPostHandler(Handler):
 
     @login_required
     def post(self, entry_id):
-        user_input.likes_and_comments_mgmt(self,
-                                           models.Comments,
-                                           models.Blog)
+        user_input.manage_post(self,
+                               models.Comments,
+                               models.Blog)
 
 
 class EditPostHandler(Handler):
@@ -315,7 +319,8 @@ class CommentHandler(Handler):
     @login_required
     def post(self, origin_entry_id):
         body = self.request.get("comment")
-        comment_id = security.Utils.check_secure_val(self.request.get('comment_id'))
+        comment_id = security.Utils.check_secure_val(
+            self.request.get('comment_id'))
         if body:
             if comment_id:
                 comment = models.Comments.get_by_id(int(comment_id))
